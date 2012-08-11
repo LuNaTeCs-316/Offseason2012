@@ -1,12 +1,12 @@
 #include <math.h>
 #include "WPILib.h"
 
-/**
- * This is a demo program showing the use of the RobotBase class.
- * The SimpleRobot class is the base of a robot application that will automatically call your
- * Autonomous and OperatorControl methods at the right time as controlled by the switches on
- * the driver station or the field controls.
- */ 
+// TODO Make sure all of the code is well commented
+
+// 
+// This is the class for our robot. It builds off of the IterativeRobot
+// class.
+//
 class Team316Robot : public IterativeRobot
 {
 private:
@@ -14,42 +14,44 @@ private:
 	
 	// Joysticks
 	
-	Joystick *driverStick;
-	Joystick *operatorStick;
+	Joystick *driverStick;		// XBox controller for driver
+	Joystick *operatorStick;	// Logitech joystick for operator
 	
 	// Motors
 	
-	RobotDrive *driveMotors; 		// robot drive system
-	Jaguar *shooterMotor;
-	Jaguar *turretMotor;
+	RobotDrive *driveMotors; 	// robot drive system
+	Jaguar *shooterMotor;		// motor for shooter
+	Jaguar *turretMotor;		// motor for turret rotation
 	
 	// Solenoids
 	
-	Compressor *compressor;
-	Solenoid *upperBallUp;
-	Solenoid *upperBallDown;
-	Solenoid *lowerBallUp;
-	Solenoid *lowerBallDown;
-	Solenoid *bridgeUp;
-	Solenoid *bridgeDown;
+	Compressor *compressor;		// the compressor
+	Solenoid *upperBallUp;		// upper ball lift solenoid (up channel)
+	Solenoid *upperBallDown;	// upper ball lift solenoid (down channel)
+	Solenoid *lowerBallUp;		// lower ball lift solenoid (up channel)
+	Solenoid *lowerBallDown;	// lower ball lift solenoid (down channel)
+	Solenoid *bridgeUp;			// bridge solenoid (up channel)
+	Solenoid *bridgeDown;		// bridge solenoid (down channel)
 	
 	// Relays
 	
-	Relay *ballPickup;
+	Relay *ballPickup;			// relay for ball pickup belt
 	
 	// Counters
 	
-	Counter *speedCounter;
+	Counter *speedCounter;		// shooter speed counter
 	
 	// Digitial Inputs
 	
-	DigitalInput *turretLimitLeft;
-	DigitalInput *turretLimitRight;
-	DigitalInput *ballLoad;
+	DigitalInput *turretLimitLeft;		// left limit switch for turret
+	DigitalInput *turretLimitRight;		// right limit switch for turret
+	DigitalInput *ballLoad;				// optical sensor for ball lift
 	
-	int autoMode;
-	int autoStep;
-	double startTime;
+	// Global data
+	
+	int autoMode;		// which autonomous mode are we running?
+	int autoStep;		// which step in autonomous mode are we in?
+	double startTime;	// used to record the starting time in autonomous
 	
 	// Camera data
 	
@@ -60,6 +62,11 @@ private:
 	int targetY;
 	
 public:
+	//
+	// Team316Robot()
+	//
+	// The only constructor; allocates memory for the dynamic member variables.
+	//
 	Team316Robot(void)
 	{
 		ds = DriverStation::GetInstance();
@@ -90,6 +97,8 @@ public:
 	}
 	
 	//
+	// RobotInit()
+	//
 	// Initialize the robot state
 	//
 	void RobotInit(void)
@@ -105,7 +114,11 @@ public:
 		bridgeUp->Set(false);
 		bridgeDown->Set(true);
 		
+		// Start the counter
+		
 		speedCounter->Start();
+		
+		// Setup the camera
 		
 		AxisCamera &camera = AxisCamera::GetInstance();
 		camera.WriteResolution(AxisCamera::kResolution_320x240);
@@ -113,35 +126,68 @@ public:
 		camera.WriteBrightness(50);		// might want to try lowering
 	}
 
+	//
+	// DisabledInit()
+	//
+	// Called once upon entering a disabled state. All outputs should be
+	// stopped here for safety.
+	//
 	void DisabledInit()
 	{
 		// Put any tasks here to be run when the robot is disabled
 	}
 	
+	//
+	// DisabledPeriodic()
+	//
+	// Called at a regular interval while the robot is disabled. Place tasks
+	// such as updating/resetting sensor values
+	//
 	void DisablePeriodic() {}	// Nothing to be done here for now
 	
+	//
+	// TeleopInit()
+	//
+	// Called once when entering teleop mode. Setup for teleop mode.
+	//
 	void TeleopInit()
 	{
 		compressor->Start();
 	}
 	
+	//
+	// TeleopPeriodic()
+	//
+	// Called at a regular interval (approx. 20ms) during teleop mode.
+	// The majority of the teleop code goes here. It is important to
+	// make sure this function is not delayed, so don't place any
+	// wait statements or loops here.
+	//
 	void TeleopPeriodic()
 	{
+		// TODO Divide teleop into functions for each section
+		
 		// Drive Motors
 		
 		const float DEADBAND = 0.2;
+		
 		float drive_x = driverStick->GetX();
 		float drive_y = driverStick->GetY();
 		float drive_rot = driverStick->GetAxis(Joystick::kTwistAxis);
-		if (fabs(drive_x) < DEADBAND) {
+		
+		if (fabs(drive_x) < DEADBAND)
+		{
 			drive_x = 0;
 		}
-		if (fabs(drive_y) < DEADBAND) {
+		if (fabs(drive_y) < DEADBAND)
+		{
 			drive_y = 0;
 		}
-		if (fabs(drive_rot) < DEADBAND) {
+		if (fabs(drive_rot) < DEADBAND)
+		{
 			drive_rot = 0;
 		}
+		
 		driveMotors->MecanumDrive_Cartesian(drive_x, drive_y, drive_rot);
 		
 		// Turret control
@@ -158,57 +204,79 @@ public:
 			*/
 		}
 		
-		if (turretLimitLeft->Get() && turretVal > 0) {
+		if (turretLimitLeft->Get() && turretVal > 0)
+		{
 			turretVal = 0;
 		}
-		else if (turretLimitRight->Get() && turretVal < 0) {
+		else if (turretLimitRight->Get() && turretVal < 0)
+		{
 			turretVal = 0;
 		}
+		
 		turretMotor->Set(turretVal);
 		
 		// Ball pickup
 		
-		if (operatorStick->GetRawButton(2)) {
+		if (operatorStick->GetRawButton(2))
+		{
 			ballPickup->Set(Relay::kForward);
-		} else {
+		}
+		else
+		{
 			ballPickup->Set(Relay::kOff);
 		}
 		
 		// Ball loading/firing
 		
-		if (operatorStick->GetRawButton(4)) {
+		if (operatorStick->GetRawButton(4))
+		{
 			lowerBallDown->Set(true);
 			lowerBallUp->Set(false);
-		} else if (operatorStick->GetRawButton(5) || ballLoad->Get()) {
+		}
+		else if (operatorStick->GetRawButton(5) || ballLoad->Get())
+		{
 			lowerBallUp->Set(true);
 			lowerBallDown->Set(false);
 		}
 		
-		if (operatorStick->GetRawButton(1)) {
+		if (operatorStick->GetRawButton(1))
+		{
 			upperBallUp->Set(true);
 			upperBallDown->Set(false);
-		} else {
+		}
+		else
+		{
 			upperBallDown->Set(true);
 			upperBallUp->Set(true);
 		}
 		
 		// Shooter
 		
-		if (operatorStick->GetRawButton(10)) {
+		if (operatorStick->GetRawButton(10))
+		{
 			shooterMotor->Set(-1.0);
 		}
 		
 		// SAM Jack
 		
-		if (operatorStick->GetRawButton(6)) {
+		if (operatorStick->GetRawButton(6))
+		{
 			bridgeUp->Set(true);
 			bridgeDown->Set(false);
-		} else {
+		}
+		else
+		{
 			bridgeUp->Set(false);
 			bridgeDown->Set(true);
 		}
 	}
 	
+	//
+	// AutonomousInit()
+	//
+	// Called right before entering autonomous mode. Setup the
+	// robot for autonomous mode.
+	//
 	void AutonomousInit()
 	{
 		autoMode = (int) ds->GetAnalogIn(1);
@@ -216,6 +284,12 @@ public:
 		startTime = GetClock();
 	}
 	
+	//
+	// AutonomousPeriodic()
+	//
+	// Called at a regular interval (approx. 20ms) during autonomus mode.
+	// Will call one of the autonomous routines below depending on the value of autoMode
+	//
 	void AutonomousPeriodic()
 	{
 		switch (autoMode)
@@ -223,15 +297,17 @@ public:
 		case 0:
 			break;
 		case 1:
-			AutonomousModeOne();
+			AutonomousModeOne();	// run Autonomous routine 1
 			break;
 		default:
+			
 			break;
 		}
 	}
 	
 	void AutonomousModeOne()
 	{
+		// TODO Finish writing autonomous mode one
 		if (autoStep == 1)
 		{
 			// Power motor and setup pistons
@@ -273,6 +349,11 @@ public:
 		}
 	}
 	
+	//
+	// FindTarget()
+	//
+	// Analyzes a camera image and updates the position of the target
+	//
 	void FindTarget()
 	{
 		AxisCamera &camera = AxisCamera::GetInstance();
