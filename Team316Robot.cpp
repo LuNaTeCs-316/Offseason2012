@@ -52,6 +52,7 @@ private:
 	int autoMode;		// which autonomous mode are we running?
 	int autoStep;		// which step in autonomous mode are we in?
 	double startTime;	// used to record the starting time in autonomous
+	bool autoTimedOut;	// did autonomous mode timeout
 	
 	// Camera data
 	
@@ -197,6 +198,7 @@ public:
 		
 		if (operatorStick->GetRawButton(2))
 		{
+			// Examine camera image and adjust turret
 			/*
 			FindTarget();
 			error = 160 - targetX;
@@ -295,6 +297,7 @@ public:
 		switch (autoMode)
 		{
 		case 0:
+			// Do nothing
 			break;
 		case 1:
 			AutonomousModeOne();	// run Autonomous routine 1
@@ -305,9 +308,13 @@ public:
 		}
 	}
 	
+	//
+	// AutonomousModeOne()
+	//
+	// Fire two shots without aiming
+	//
 	void AutonomousModeOne()
-	{
-		// TODO Finish writing autonomous mode one
+	{	
 		if (autoStep == 1)
 		{
 			// Power motor and setup pistons
@@ -320,7 +327,7 @@ public:
 			
 			// Check if we're ready to advance to the next step
 			
-			if ((GetClock() - startTime) > 2.0)
+			if ((GetClock() - startTime) >= 2.0)
 			{
 				autoStep = 2;
 				startTime = GetClock();
@@ -334,9 +341,9 @@ public:
 			upperBallUp->Set(true);
 			upperBallDown->Set(false);
 			
-			shooterMotor->Set(-1.0);
+			shooterMotor->Set(-1.0); 
 			
-			if ((GetClock() - startTime) > 0.5)
+			if ((GetClock() - startTime) >= 0.5)
 			{
 				autoStep++;
 				startTime = GetClock();
@@ -345,9 +352,118 @@ public:
 		
 		else if (autoStep == 3)
 		{
+			// Wait for the next ball to load
 			
+			const float TIMEOUT = 1.25;
+			autoTimedOut = ((GetClock() - startTime) >= TIMEOUT);
+			
+			if (ballLoad->Get() || autoTimedOut)
+			{
+				autoStep++;
+				startTime = GetClock();
+			}
+			
+			shooterMotor->Set(-1.0);	// update the shooter motor value so it doesn't time out
 		}
-	}
+		
+		else if (autoStep == 4)
+		{
+			// If ball failed to load, rapidly fire the piston up and down
+			// to try and free the ball
+			
+			if (!autoTimedOut)	// if the ball loaded skip to next step
+			{
+				autoStep++;
+				startTime = GetClock();
+			}
+			
+			else
+			{
+				// fire the lower piston up and down
+				
+				shooterMotor->Set(-1.0);	// update the shooter motor value so it doesn't time out
+				
+				bool state = true;		// state of the piston: up (true) or down (false)
+				int stateCount = 0;		// how many times have we switched states?
+				
+				if (stateCount < 3)		// are we done yet?
+				{
+					if ((GetClock() - startTime) >= 0.2)	// switch every 200 ms
+					{
+						state = !state;				// toggle piston state
+						startTime = GetClock();		// reset timer
+						stateCount++;				// increment state switch count
+					}
+					
+					lowerBallUp->Set(state);		// set the piston state
+					lowerBallDown->Set(!state);		// opposite of the other solenoid
+				}
+				
+				else	// 1 second delay
+				{
+					lowerBallUp->Set(false);		// lower piston so ball can roll in
+					lowerBallDown->Set(true);
+					
+					if ((GetClock() - startTime) >= 1)	// move on after 1 second
+					{
+						autoStep++;
+						startTime = GetClock();
+					}
+				}
+			}
+		}		/* autostep == 4 */
+		
+		else if (autoStep == 5)
+		{
+			// load the ball and give motor time to reach full speed
+			
+			lowerBallUp->Set(true);
+			lowerBallDown->Set(false);
+			
+			if ((GetClock() - startTime) >= 2)
+			{
+				autoStep++;
+				startTime = GetClock();
+			}
+		}
+		
+		else if (autoStep == 6)
+		{
+			// fire the second shot
+			
+			upperBallUp->Set(true);
+			upperBallDown->Set(false);
+			
+			shooterMotor->Set(-1.0);
+			
+			if ((GetClock() - startTime) >= 0.5)
+			{
+				autoStep++;
+				startTime = GetClock();
+			}
+		}
+		
+		else if (autoStep == 7)
+		{
+			// stop all outputs and prep pistons for teleop
+			
+			upperBallUp->Set(false);
+			upperBallDown->Set(true);
+			lowerBallUp->Set(true);
+			lowerBallDown->Set(false);
+			
+			shooterMotor->Set(0.0);
+			
+			autoStep++;
+			
+			cout << "AutonomousModeOne finished!" << endl;
+		}
+		
+		else if (autoStep == 8)
+		{
+			// Nothing to be done; autonomous routine is done finished
+		}
+	}		/* AutonomousModeOne */
 	
 	//
 	// FindTarget()
