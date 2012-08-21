@@ -1,30 +1,106 @@
 #include <math.h>
 #include "WPILib.h"
 
-// TODO Make sure all of the code is well commented
+/*****************************************************************************************
+ * TODO List
+ * 
+ * TODO: verify drive train motors work and are of correct orientation
+ * TODO: verify all control buttons and joysticks etc, control the correct devices
+ * TODO: write autonomous modes 1, 2, 3, 4, 5
+	TODO: write 
+		CAMERA_TARGETING
+		DRIVE_TO_BRIDGE
+		LOWER_SAM_JACK
+		RAISE_SAM_JACK
+ *
+*****************************************************************************************/
 
-// 
-// This is the class for our robot. It builds off of the IterativeRobot
-// class.
-//
-class Team316Robot : public IterativeRobot
-{
+/*****************************************************************************************
+ * LunatecsOffseason2012
+ * class file that will control the lunatecs robot designed to compete in the
+ * Rebound Rumble competition.  
+ * 
+ * Driving: 
+ * 		The robot uses 4 motors mecanum wheel drive system that is defined
+ * 		with the robotodrive module and controlled by the driverstick which is an xbox 
+ * 		controller.  The driver can use either of the 2 analog joysticks on the controller with
+ * 		the left joystick moving the robot forward, reverse, or crab left and right.  The right
+ * 		joystick moves the robot forward or reverse and rotates left or right.  The driver can also 
+ * 		use both joysticks at the same time to yeild a combination of movements.
+ * 
+ * Shooting:  
+ * 		Rebound Rumble is a basketball style game and the lunatecs robot shooting, 
+ * 		pickup, etc, is controlled by the operatorstick joystick.  
+ * 		
+ * 		ball pickup: 
+ * 				The robot can pick up balls from the floor using a ball pickup motor 
+ * 				triggered by the ballpickup relay.  
+ * 		Ball staging: 
+ * 				The balls then roll into the shooter staging area of the robot 
+ * 				which consists of two pnuematic pistons.  The lower piston prestages the ball 
+ * 				so that it is ready to fire.  It is controlled by the lowerballup and lowerballdown 
+ * 				solenoids.  The upper piston delivers the ball into the shooter which fires 
+ * 				the ball at the basket (hopefully).  The upper piston is controlled by the 
+ * 				upperballup and upperballdown solenoids.
+ * 		Turret, Shooter, and speed control:
+ * 				The shooter consists of a motor controlled by a jaguar PWM speed controller 
+ * 				called shootermotor and an optical pickup counter which can see a piece of 
+ * 				reflective tape on the side of the shooter motor wheel.  The optical pickup 
+ * 				merely counts the number of rotations of the disk and then 
+ * 				can calculate the speed of the shooter.  It is called speedcounter here.  
+ * 				Finally, the shooter has a turret which can rotate left or right and is 
+ * 				controlled by the turretmotor.  To prevent cable damage, the turret is 
+ * 				prevented from rotating too far left or right by turret limit switches.  
+ * 
+ * Balancing: 
+ * 		In the end game portion of rebound rumble, robots can balance an a teeter-totter
+ * 		style bridge for bonus points.  Our robot uses a single, large, heavy duty piston located
+ * 		underneath the robot to raise the entire one side of the robot up over the lip of the bridge
+ * 		then lets the weight of the entire robot come down on the bridge to tilt it.  This piston is
+ * 		controlled by the bridgeup and bridgedown solenoids.  Once on the bridge, the operator can either
+ * 		attempt to balance the robot manually, or push a button to allow the robot to self-balance using
+ * 		a gyro sensor.
+ * 
+ ****************************************************************************************/ 
+
+
+
+/****************************************************************************************
+ * define global constants 
+ ****************************************************************************************/ 
+const float JOYSTICK_DEADBAND 			= 0.2; 	//total joystick travel is -1.0 TO 1.0
+const float DEFAULT_SHOOTER_SPEED 		= -1.0; //in percent 1.0 = 100%
+const float DEFAULT_TURRET_SPEED 		= .5; 	//in percent 1.0 = 100%
+
+//button desgnations on operator control joystick
+const int 	RAISE_UPPER_BALL_PISTON_BUTTON  = 1;
+const int 	BALL_PICKUP_BUTTON				= 2;
+const int 	CAMERA_TARGETING_BUTTON 		= 3;
+const int 	LOWER_LOWER_BALL_PISTON_BUTTON 	= 4;
+const int 	RAISE__LOWER_BALL_PISTON_BUTTON	= 5;
+const int 	SAM_JACK_BUTTON					= 6;
+const int 	BALL_SHOOTER_BUTTON				= 10;
+
+class Team316Robot : public IterativeRobot {
+	/***************************************************************************************
+	 * private section is only accessible internally
+	 ****************************************************************************************/ 
 private:
+	/****************************************************************************************
+	 * define pointers to all of the robot parts that are controlled by software 
+	 ****************************************************************************************/ 
 	DriverStation *ds;
 	
 	// Joysticks
-	
 	Joystick *driverStick;		// XBox controller for driver
 	Joystick *operatorStick;	// Logitech joystick for operator
 	
 	// Motors
-	
 	RobotDrive *driveMotors; 	// robot drive system
 	Jaguar *shooterMotor;		// motor for shooter
 	Jaguar *turretMotor;		// motor for turret rotation
 	
 	// Solenoids
-	
 	Compressor *compressor;		// the compressor
 	Solenoid *upperBallUp;		// upper ball lift solenoid (up channel)
 	Solenoid *upperBallDown;	// upper ball lift solenoid (down channel)
@@ -34,28 +110,23 @@ private:
 	Solenoid *bridgeDown;		// bridge solenoid (down channel)
 	
 	// Relays
-	
 	Relay *ballPickup;			// relay for ball pickup belt
 	
 	// Counters
-	
 	Counter *speedCounter;		// shooter speed counter
 	
 	// Digitial Inputs
-	
 	DigitalInput *turretLimitLeft;		// left limit switch for turret
 	DigitalInput *turretLimitRight;		// right limit switch for turret
 	DigitalInput *ballLoad;				// optical sensor for ball lift
 	
 	// Global data
-	
 	int autoMode;		// which autonomous mode are we running?
 	int autoStep;		// which step in autonomous mode are we in?
 	double startTime;	// used to record the starting time in autonomous
 	bool autoTimedOut;	// did autonomous mode timeout
 	
 	// Camera data
-	
 	int maxWidth;
 	int targetWd;
 	int targetHt;
