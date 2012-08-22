@@ -7,11 +7,11 @@
  * TODO: verify drive train motors work and are of correct orientation
  * TODO: verify all control buttons and joysticks etc, control the correct devices
  * TODO: write autonomous modes 1, 2, 3, 4, 5
-	TODO: write 
-		CAMERA_TARGETING
-		DRIVE_TO_BRIDGE
-		LOWER_SAM_JACK
-		RAISE_SAM_JACK
+ * TODO: write 
+ *			- CAMERA_TARGETING
+ *			- DRIVE_TO_BRIDGE
+ *			- LOWER_SAM_JACK
+ *			- RAISE_SAM_JACK
  *
 *****************************************************************************************/
 
@@ -32,7 +32,7 @@
  * 		Rebound Rumble is a basketball style game and the lunatecs robot shooting, 
  * 		pickup, etc, is controlled by the operatorstick joystick.  
  * 		
- * 		ball pickup: 
+ * 		Ball pickup: 
  * 				The robot can pick up balls from the floor using a ball pickup motor 
  * 				triggered by the ballpickup relay.  
  * 		Ball staging: 
@@ -774,4 +774,4 @@ void FindTarget() {
 
 };//end of class definition
 
-START_ROBOT_CLASS(LunatecsOffseason2012);
+START_ROBOT_CLASS(Team316Robot);
