@@ -82,109 +82,109 @@ const int 	SAM_JACK_BUTTON					= 6;
 const int 	BALL_SHOOTER_BUTTON				= 10;
 
 class Team316Robot : public IterativeRobot {
-	/***************************************************************************************
-	 * private section is only accessible internally
-	 ****************************************************************************************/ 
+/***************************************************************************************
+ * private section is only accessible internally
+ ****************************************************************************************/ 
 private:
-	/****************************************************************************************
-	 * define pointers to all of the robot parts that are controlled by software 
-	 ****************************************************************************************/ 
-	DriverStation *ds;
-	
-	// Joysticks
-	Joystick *driverStick;		// XBox controller for driver
-	Joystick *operatorStick;	// Logitech joystick for operator
-	
-	// Motors
-	RobotDrive *driveMotors; 	// robot drive system
-	Jaguar *shooterMotor;		// motor for shooter
-	Jaguar *turretMotor;		// motor for turret rotation
-	
-	// Solenoids
-	Compressor *compressor;		// the compressor
-	Solenoid *upperBallUp;		// upper ball lift solenoid (up channel)
-	Solenoid *upperBallDown;	// upper ball lift solenoid (down channel)
-	Solenoid *lowerBallUp;		// lower ball lift solenoid (up channel)
-	Solenoid *lowerBallDown;	// lower ball lift solenoid (down channel)
-	Solenoid *bridgeUp;			// bridge solenoid (up channel)
-	Solenoid *bridgeDown;		// bridge solenoid (down channel)
-	
-	// Relays
-	Relay *ballPickup;			// relay for ball pickup belt
-	
-	// Counters
-	Counter *speedCounter;		// shooter speed counter
-	
-	// Digitial Inputs
-	DigitalInput *turretLimitLeft;		// left limit switch for turret
-	DigitalInput *turretLimitRight;		// right limit switch for turret
-	DigitalInput *ballLoad;				// optical sensor for ball lift
-	
-	/***************************************************************************************
-	 * internal program variables
-	 ****************************************************************************************/ 
-	// control of autonomous finite states
-	int autoMode;		// which autonomous mode are we running?
-	int autoStep;		// which step in autonomous mode are we in?
-	double startTime;	// used to record the starting time in autonomous
-	bool autoTimedOut;	// did autonomous mode timeout
-	
-	// Camera data
-	int maxWidth;
-	int targetWd;
-	int targetHt;
-	int targetX;
-	int targetY;
-	// joystick positions for driving robot wheels
-	float drive_x;
-	float drive_y;
-	float drive_rot;
-	// shooter values
-	float turretVal; 	
-	
+/****************************************************************************************
+ * define pointers to all of the robot parts that are controlled by software 
+ ****************************************************************************************/ 
+DriverStation *ds;
+
+// Joysticks
+Joystick *driverStick;		// XBox controller for driver
+Joystick *operatorStick;	// Logitech joystick for operator
+
+// Motors
+RobotDrive *driveMotors; 	// robot drive system
+Jaguar *shooterMotor;		// motor for shooter
+Jaguar *turretMotor;		// motor for turret rotation
+
+// Solenoids
+Compressor *compressor;		// the compressor
+Solenoid *upperBallUp;		// upper ball lift solenoid (up channel)
+Solenoid *upperBallDown;	// upper ball lift solenoid (down channel)
+Solenoid *lowerBallUp;		// lower ball lift solenoid (up channel)
+Solenoid *lowerBallDown;	// lower ball lift solenoid (down channel)
+Solenoid *bridgeUp;			// bridge solenoid (up channel)
+Solenoid *bridgeDown;		// bridge solenoid (down channel)
+
+// Relays
+Relay *ballPickup;			// relay for ball pickup belt
+
+// Counters
+Counter *speedCounter;		// shooter speed counter
+
+// Digitial Inputs
+DigitalInput *turretLimitLeft;		// left limit switch for turret
+DigitalInput *turretLimitRight;		// right limit switch for turret
+DigitalInput *ballLoad;				// optical sensor for ball lift
+
+/***************************************************************************************
+ * internal program variables
+ ****************************************************************************************/ 
+// control of autonomous finite states
+int autoMode;		// which autonomous mode are we running?
+int autoStep;		// which step in autonomous mode are we in?
+double startTime;	// used to record the starting time in autonomous
+bool autoTimedOut;	// did autonomous mode timeout
+
+// Camera data
+int maxWidth;
+int targetWd;
+int targetHt;
+int targetX;
+int targetY;
+// joystick positions for driving robot wheels
+float drive_x;
+float drive_y;
+float drive_rot;
+// shooter values
+float turretVal; 	
 
 
-	/***************************************************************************************
-	 * public section is accessible to external classes
-	 ****************************************************************************************/ 
+
+/***************************************************************************************
+ * public section is accessible to external classes
+ ****************************************************************************************/ 
 public:
-	/***************************************************************************************
-	 * constructor
-	 * 
-	 * here we specify which ports the devices are plugged into
-	 * 
-	 * The only constructor; allocates memory for the dynamic member variables.
-	 ****************************************************************************************/ 
-	Team316Robot(void) {
-		ds = DriverStation::GetInstance();
-		
-		driverStick = new Joystick(1);
-		operatorStick = new Joystick(2);
-		
-		driveMotors = new RobotDrive(1, 2);
-		driveMotors->SetExpiration(0.75);
-		shooterMotor = new Jaguar(5);
-		turretMotor = new Jaguar(6);
-		
-		compressor = new Compressor(14, 1);
-		upperBallUp = new Solenoid(1);
-		upperBallDown = new Solenoid(2);
-		lowerBallUp = new Solenoid(3);
-		lowerBallDown = new Solenoid(4);
-		bridgeUp = new Solenoid(5);
-		bridgeDown = new Solenoid(6);
-		
-		ballPickup = new Relay(2);
-		
-		speedCounter = new Counter(8);
-		
-		turretLimitLeft = new DigitalInput(4);
-		turretLimitRight = new DigitalInput(5);
-		ballLoad = new DigitalInput(3);
-	}//end of constructor
+/***************************************************************************************
+ * constructor
+ * 
+ * here we specify which ports the devices are plugged into
+ * 
+ * The only constructor; allocates memory for the dynamic member variables.
+ ****************************************************************************************/ 
+Team316Robot(void) {
+	ds = DriverStation::GetInstance();
+	
+	driverStick = new Joystick(1);
+	operatorStick = new Joystick(2);
+	
+	driveMotors = new RobotDrive(1, 2);
+	driveMotors->SetExpiration(0.75);
+	shooterMotor = new Jaguar(5);
+	turretMotor = new Jaguar(6);
+	
+	compressor = new Compressor(14, 1);
+	upperBallUp = new Solenoid(1);
+	upperBallDown = new Solenoid(2);
+	lowerBallUp = new Solenoid(3);
+	lowerBallDown = new Solenoid(4);
+	bridgeUp = new Solenoid(5);
+	bridgeDown = new Solenoid(6);
+	
+	ballPickup = new Relay(2);
+	
+	speedCounter = new Counter(8);
+	
+	turretLimitLeft = new DigitalInput(4);
+	turretLimitRight = new DigitalInput(5);
+	ballLoad = new DigitalInput(3);
+}//end of constructor
 
-		
-		
+	
+	
 /***************************************************************************************
  * Initialize the robot state
  * 
