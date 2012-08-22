@@ -192,15 +192,11 @@ Team316Robot(void) {
  * initial operating parameters
  ****************************************************************************************/ 
 void RobotInit(void) {
-	// Setup compressor and solenoids
-	compressor->Start();
-	
-	upperBallUp->Set(false);
-	upperBallDown->Set(true);
-	lowerBallUp->Set(true);
-	lowerBallDown->Set(false);
-	bridgeUp->Set(false);
-	bridgeDown->Set(true);
+	driveMotorsControl(0, 0, 0); 	//turn off drive motors
+	shooterMotor->Set(0);			//turn off shooter motor
+	armBall();
+	samJackControl(false);			//lower sam jack
+	ballPickupControl(false);		//turn off pickup motor
 	
 	// Start the counter
 	speedCounter->Start();
@@ -214,24 +210,6 @@ void RobotInit(void) {
 	// Start compressor
 	compressor->Start(); //will run in a seperate thread and running depending upon pressure
 	
-	// set the upper ball piston retracted
-	upperBallUp->Set(false);
-	upperBallDown->Set(true);
-	// set the lower ball piston extended
-	lowerBallUp->Set(true);
-	lowerBallDown->Set(false);
-	// set sam jack down
-	bridgeUp->Set(false);
-	bridgeDown->Set(true);
-	
-	speedCounter->Start(); //will run in separate thread
-	
-	// start camera and set initial parameters
-	AxisCamera &camera = AxisCamera::GetInstance();
-	camera.WriteResolution(AxisCamera::kResolution_320x240);
-	camera.WriteCompression(40);	// might want to try 10
-	camera.WriteBrightness(50);		// might want to try lowering
-
 	drive_x = drive_y = drive_rot = 0;
 	turretVal = 0; 	
 }//end of RobotInit
