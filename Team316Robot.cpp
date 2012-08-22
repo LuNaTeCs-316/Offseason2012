@@ -185,615 +185,615 @@ public:
 
 		
 		
-	/***************************************************************************************
-	 * Initialize the robot state
-	 * 
-	 * this function is called when robot is first enabled to establish our
-	 * initial operating parameters
-	 ****************************************************************************************/ 
-	void RobotInit(void) {
-		// Setup compressor and solenoids
-		compressor->Start();
-		
-		upperBallUp->Set(false);
-		upperBallDown->Set(true);
-		lowerBallUp->Set(true);
-		lowerBallDown->Set(false);
-		bridgeUp->Set(false);
-		bridgeDown->Set(true);
-		
-		// Start the counter
-		speedCounter->Start();
-		
-		// Setup the camera
-		AxisCamera &camera = AxisCamera::GetInstance();
-		camera.WriteResolution(AxisCamera::kResolution_320x240);
-		camera.WriteCompression(40);	// might want to try 10
-		camera.WriteBrightness(50);		// might want to try lowering
+/***************************************************************************************
+ * Initialize the robot state
+ * 
+ * this function is called when robot is first enabled to establish our
+ * initial operating parameters
+ ****************************************************************************************/ 
+void RobotInit(void) {
+	// Setup compressor and solenoids
+	compressor->Start();
+	
+	upperBallUp->Set(false);
+	upperBallDown->Set(true);
+	lowerBallUp->Set(true);
+	lowerBallDown->Set(false);
+	bridgeUp->Set(false);
+	bridgeDown->Set(true);
+	
+	// Start the counter
+	speedCounter->Start();
+	
+	// Setup the camera
+	AxisCamera &camera = AxisCamera::GetInstance();
+	camera.WriteResolution(AxisCamera::kResolution_320x240);
+	camera.WriteCompression(40);	// might want to try 10
+	camera.WriteBrightness(50);		// might want to try lowering
 
-		// Start compressor
-		compressor->Start(); //will run in a seperate thread and running depending upon pressure
-		
-		// set the upper ball piston retracted
-		upperBallUp->Set(false);
-		upperBallDown->Set(true);
-		// set the lower ball piston extended
-		lowerBallUp->Set(true);
-		lowerBallDown->Set(false);
-		// set sam jack down
-		bridgeUp->Set(false);
-		bridgeDown->Set(true);
-		
-		speedCounter->Start(); //will run in separate thread
-		
-		// start camera and set initial parameters
-		AxisCamera &camera = AxisCamera::GetInstance();
-		camera.WriteResolution(AxisCamera::kResolution_320x240);
-		camera.WriteCompression(40);	// might want to try 10
-		camera.WriteBrightness(50);		// might want to try lowering
+	// Start compressor
+	compressor->Start(); //will run in a seperate thread and running depending upon pressure
+	
+	// set the upper ball piston retracted
+	upperBallUp->Set(false);
+	upperBallDown->Set(true);
+	// set the lower ball piston extended
+	lowerBallUp->Set(true);
+	lowerBallDown->Set(false);
+	// set sam jack down
+	bridgeUp->Set(false);
+	bridgeDown->Set(true);
+	
+	speedCounter->Start(); //will run in separate thread
+	
+	// start camera and set initial parameters
+	AxisCamera &camera = AxisCamera::GetInstance();
+	camera.WriteResolution(AxisCamera::kResolution_320x240);
+	camera.WriteCompression(40);	// might want to try 10
+	camera.WriteBrightness(50);		// might want to try lowering
 
-		drive_x = drive_y = drive_rot = 0;
-		turretVal = 0; 	
-	}//end of RobotInit
-
-		
-		
-	/***************************************************************************************
-	 * Disable the robot
-	 * 
-	 * Put any tasks here to be run when the robot is disabled
-	 * Called once upon entering a disabled state. All outputs should be
-	 * stopped here for safety.
-	 ****************************************************************************************/ 
-	void DisabledInit() {}// Nothing to be done here for now
-
-		
-		
-	/***************************************************************************************
-	 * Disable mode
-	 * 
-	 * I think this is run inbetween autonomous and teleop modes
-	 * 
-	 * Called at a regular interval while the robot is disabled. Place tasks
-	 *	such as updating/resetting sensor values
-	 * 
-	 * TODO: verify when this function is called
-	 ****************************************************************************************/ 
-	void DisablePeriodic() {}	// Nothing to be done here for now
-		
-
-
-	/***************************************************************************************
-	 ***************************************************************************************
-	 *           TELEOP  SECTION
-	 ***************************************************************************************
-	 ***************************************************************************************
-	 ***************************************************************************************
-	 ***************************************************************************************
-	 ***************************************************************************************/
-
-
-	/***************************************************************************************
-	 * Initialize the teleop mode of the robot
-	 * 
-	 * this function is called when the robot enters the teleop mode
-	 * NOTE WELL: this does NOT stop autonomous code from running!  You must do
-	 * that yourself
-	 ****************************************************************************************/ 
-	void TeleopInit() {
-		//restart the compressor as it may have been disabled in autonomous
-		//to make shooting more stable
-		compressor->Start();
-	}//end of TeleopInit
-
-		
-		
-	/***************************************************************************************
-	 * teleop mode 
-	 * 
-	 * this function is called every 20ms while the robot is in
-	 * teleop mode so there is no need to make loops here.
-	 * 
-	 * Called at a regular interval (approx. 20ms) during teleop mode.
-		The majority of the teleop code goes here. It is important to
-		make sure this function is not delayed, so don't place any
-		wait statements or loops here.
-	 * 
-	 ****************************************************************************************/ 
-	void TeleopPeriodic() {
-		driveMotorsControl(); 			//control the wheel drive motors using joystick input
-		turretControl();				//control the turret if operator joystick moved
-		ballPickupControl();			//pickup ball if operator joystick button pressed
-		ballHandlingControl();			//operate pistons to position ball in shooter if operator joystick button pressed
-		ballShooterControl();			//shoot ball if operator joystick button pressed
-		samJackControl();				//operate bridge manipulator if operator joystick button pressed
-	}//end of TeleopPeriodic
-
-
-
-	/***************************************************************************************
-	 ***************************************************************************************
-	 *           AUTONOMOUS  SECTION
-	 ***************************************************************************************
-	 ***************************************************************************************
-	 ***************************************************************************************
-	 ***************************************************************************************
-	 ***************************************************************************************/
+	drive_x = drive_y = drive_rot = 0;
+	turretVal = 0; 	
+}//end of RobotInit
 
 	
 	
-	/***************************************************************************************
-	 * AutonomousInit
-	 * 
-	 * runs when we first enter autonomous mode
-	 ****************************************************************************************/ 
-	void AutonomousInit() {	
-		//since ds->GetAnalogIn(1) is a float we cast as an int which should
-		//truncate to an integer
-		//TODO: check if this rounds up or down or truncates
-		autoMode = (int) ds->GetAnalogIn(1); //automode is predetermined by the analog sliders on the dashboard
-		autoStep = 1; 						//start at step 1 not step 0
-		startTime = GetClock();				//record the time we start so we can use this number for time based steps
-	}//end of AutonomousInit
+/***************************************************************************************
+ * Disable the robot
+ * 
+ * Put any tasks here to be run when the robot is disabled
+ * Called once upon entering a disabled state. All outputs should be
+ * stopped here for safety.
+ ****************************************************************************************/ 
+void DisabledInit() {}// Nothing to be done here for now
+
+	
+	
+/***************************************************************************************
+ * Disable mode
+ * 
+ * I think this is run inbetween autonomous and teleop modes
+ * 
+ * Called at a regular interval while the robot is disabled. Place tasks
+ *	such as updating/resetting sensor values
+ * 
+ * TODO: verify when this function is called
+ ****************************************************************************************/ 
+void DisablePeriodic() {}	// Nothing to be done here for now
+	
+
+
+/***************************************************************************************
+ ***************************************************************************************
+ *           TELEOP  SECTION
+ ***************************************************************************************
+ ***************************************************************************************
+ ***************************************************************************************
+ ***************************************************************************************
+ ***************************************************************************************/
+
+
+/***************************************************************************************
+ * Initialize the teleop mode of the robot
+ * 
+ * this function is called when the robot enters the teleop mode
+ * NOTE WELL: this does NOT stop autonomous code from running!  You must do
+ * that yourself
+ ****************************************************************************************/ 
+void TeleopInit() {
+	//restart the compressor as it may have been disabled in autonomous
+	//to make shooting more stable
+	compressor->Start();
+}//end of TeleopInit
+
+	
+	
+/***************************************************************************************
+ * teleop mode 
+ * 
+ * this function is called every 20ms while the robot is in
+ * teleop mode so there is no need to make loops here.
+ * 
+ * Called at a regular interval (approx. 20ms) during teleop mode.
+	The majority of the teleop code goes here. It is important to
+	make sure this function is not delayed, so don't place any
+	wait statements or loops here.
+ * 
+ ****************************************************************************************/ 
+void TeleopPeriodic() {
+	driveMotorsControl(); 			//control the wheel drive motors using joystick input
+	turretControl();				//control the turret if operator joystick moved
+	ballPickupControl();			//pickup ball if operator joystick button pressed
+	ballHandlingControl();			//operate pistons to position ball in shooter if operator joystick button pressed
+	ballShooterControl();			//shoot ball if operator joystick button pressed
+	samJackControl();				//operate bridge manipulator if operator joystick button pressed
+}//end of TeleopPeriodic
 
 
 
-	/***************************************************************************************
-	 * AutonomousPeriodic
-	 * 
-	 * runs every 20ms during autonomous mode
-	 * this is a finite state automata built using a case structure
-	 ****************************************************************************************/ 
-	void AutonomousPeriodic() {
-		switch (autoMode) { //automode is predetermined by the analog sliders on the dashboard
-		case 1:	//Autonomous Mode One
-			if (autoStep == 0) autoStep = 1;				
-			if (autoStep == 1) INITIAL_SETUP();				//takes 2 seconds by default
-			if (autoStep == 2) SHOOT_BALL(); 				//takes 500ms
-			if (autoStep == 3) DO_NOTHING_FOR_500MSECONDS();
-			if (autoStep == 4) LOAD_NEXT_BALL(); 			//takes 1 second
-			if (autoStep == 5) SHOOT_BALL(); 				//takes 500ms
-			if (autoStep == 6) PRESET_FOR_TELEOP();
-			break;
-		case 2:	//Autonomous Mode Two
-			if (autoStep == 0) autoStep = 1;				
-			if (autoStep == 1) CAMERA_TARGETING(); 			//takes 3 seconds
-			if (autoStep == 2) INITIAL_SETUP(1);			//takes 1 seconds
-			if (autoStep == 3) SHOOT_BALL(); 				//takes 500ms
-			if (autoStep == 4) DO_NOTHING_FOR_500MSECONDS();
-			if (autoStep == 5) LOAD_NEXT_BALL(); 			//takes 1 second
-			if (autoStep == 6) SHOOT_BALL(); 				//takes 500ms
-			if (autoStep == 7) PRESET_FOR_TELEOP();
-			break;
-		case 4:	//Autonomous Mode Four
-			if (autoStep == 0) autoStep = 1;				
-			if (autoStep == 1) RAISE_SAM_JACK(); 			
-			if (autoStep == 2) DRIVE_TO_BRIDGE_W_DEAD_RECKONING();			
-			if (autoStep == 3) LOWER_SAM_JACK(); 				
-			if (autoStep == 4) PRESET_FOR_TELEOP();
-			break;
-		//insert other modes here	
-			
-		case 0:				//no autonomous
-			break;
-		default:
-			break;
-		}//end of switch
-	}//end of AutonomousPeriodic
+/***************************************************************************************
+ ***************************************************************************************
+ *           AUTONOMOUS  SECTION
+ ***************************************************************************************
+ ***************************************************************************************
+ ***************************************************************************************
+ ***************************************************************************************
+ ***************************************************************************************/
 
 
 
-	/***************************************************************************************
-	 * Autonomous mode helper function
-	 * DO_NOTHING
-	 ****************************************************************************************/ 
-	void DO_NOTHING_FOR_500MSECONDS() {
-		if ((GetClock() - startTime) > .5) {
-			++autoStep;
-			startTime = GetClock();
-		}
-	}//end of DO_NOTHING_FOR_500MSECONDS
+/***************************************************************************************
+ * AutonomousInit
+ * 
+ * runs when we first enter autonomous mode
+ ****************************************************************************************/ 
+void AutonomousInit() {	
+	//since ds->GetAnalogIn(1) is a float we cast as an int which should
+	//truncate to an integer
+	//TODO: check if this rounds up or down or truncates
+	autoMode = (int) ds->GetAnalogIn(1); //automode is predetermined by the analog sliders on the dashboard
+	autoStep = 1; 						//start at step 1 not step 0
+	startTime = GetClock();				//record the time we start so we can use this number for time based steps
+}//end of AutonomousInit
 
 
 
-	/***************************************************************************************
-	 * Autonomous mode helper function
-	 * PRESET_FOR_TELEOP
-	 ****************************************************************************************/ 
-	void PRESET_FOR_TELEOP() {
-		driveMotorsControl(0, 0, 0); 	//turn off drive motors
-		shooterMotor->Set(0);			//turn off shooter motor
-		reloadBall();
-		samJackControl(false);			//lower sam jack
-		ballPickupControl(false);		//turn off pickup motor
-		//always last step so we do not increment autostep
-	}//end of PRESET_FOR_TELEOP
-
-
-
-	/***************************************************************************************
-	 * Autonomous mode helper function
-	 * INITIAL_SETUP
-	 ****************************************************************************************/ 
-	void INITIAL_SETUP() {
-	// Power motor and setup pistons
-			shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
-			armBall();
-			// Check if we're ready to advance to the next step
-			if ((GetClock() - startTime) > 2.0) {
-				++autoStep;
-				startTime = GetClock();
-			}
-	}//end of INITIAL_SETUP		
-
-
-			
-	void INITIAL_SETUP(int time) {
-	// Power motor and setup pistons
-			shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
-			armBall();
-			// Check if we're ready to advance to the next step
-			if ((GetClock() - startTime) > time) {
-				++autoStep;
-				startTime = GetClock();
-			}
-	}//end of INITIAL_SETUP		
-
-
-
-	void INITIAL_SETUP(float time) {
-	// Power motor and setup pistons
-			shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
-			armBall();
-			// Check if we're ready to advance to the next step
-			if ((GetClock() - startTime) > time) {
-				++autoStep;
-				startTime = GetClock();
-			}
-	}//end of INITIAL_SETUP		
-
-
-
-	/***************************************************************************************
-	 * Autonomous mode helper function
-	 * SHOOT_BALL
-	 ****************************************************************************************/ 
-	void SHOOT_BALL() {
-		shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
-		shootBall();
-		// Check if we're ready to advance to the next step
-		if ((GetClock() - startTime) > 0.5) {
-			++autoStep;
-			startTime = GetClock();
-		}
-	}//end of SHOOT_BALL
-
-
-
-	/***************************************************************************************
-	 * Autonomous mode helper function
-	 * LOAD_NEXT_BALL
-	 ****************************************************************************************/ 
-	void LOAD_NEXT_BALL() {
-		shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
-		reloadBall();
-		if ( ( (GetClock() - startTime) > 0.5) || ballLoad->Get() )  armBall();
-		//exit after 1 second regardless if ball loaded?
-		// Check if we're ready to advance to the next step
-		if ((GetClock() - startTime) > 1.0) {
-			++autoStep;
-			startTime = GetClock();
-		}
-	}//end of LOAD_NEXT_BALL
-
-
-
-	/***************************************************************************************
-	 * Autonomous mode helper function
-	 * CAMERA_TARGETING
-	 ****************************************************************************************/ 
-	void CAMERA_TARGETING() {
-		//grab image
-		FindTarget();
-		//TODO: write routine that moves turret to target position
-	}//end of CAMERA_TARGETING 
-
-
-
-	/***************************************************************************************
-	 * Autonomous mode helper function
-	 * DRIVE_TO_BRIDGE_W_GYRO
-	 ****************************************************************************************/ 
-	void DRIVE_TO_BRIDGE_W_GYRO() {
+/***************************************************************************************
+ * AutonomousPeriodic
+ * 
+ * runs every 20ms during autonomous mode
+ * this is a finite state automata built using a case structure
+ ****************************************************************************************/ 
+void AutonomousPeriodic() {
+	switch (autoMode) { //automode is predetermined by the analog sliders on the dashboard
+	case 1:	//Autonomous Mode One
+		if (autoStep == 0) autoStep = 1;				
+		if (autoStep == 1) INITIAL_SETUP();				//takes 2 seconds by default
+		if (autoStep == 2) SHOOT_BALL(); 				//takes 500ms
+		if (autoStep == 3) DO_NOTHING_FOR_500MSECONDS();
+		if (autoStep == 4) LOAD_NEXT_BALL(); 			//takes 1 second
+		if (autoStep == 5) SHOOT_BALL(); 				//takes 500ms
+		if (autoStep == 6) PRESET_FOR_TELEOP();
+		break;
+	case 2:	//Autonomous Mode Two
+		if (autoStep == 0) autoStep = 1;				
+		if (autoStep == 1) CAMERA_TARGETING(); 			//takes 3 seconds
+		if (autoStep == 2) INITIAL_SETUP(1);			//takes 1 seconds
+		if (autoStep == 3) SHOOT_BALL(); 				//takes 500ms
+		if (autoStep == 4) DO_NOTHING_FOR_500MSECONDS();
+		if (autoStep == 5) LOAD_NEXT_BALL(); 			//takes 1 second
+		if (autoStep == 6) SHOOT_BALL(); 				//takes 500ms
+		if (autoStep == 7) PRESET_FOR_TELEOP();
+		break;
+	case 4:	//Autonomous Mode Four
+		if (autoStep == 0) autoStep = 1;				
+		if (autoStep == 1) RAISE_SAM_JACK(); 			
+		if (autoStep == 2) DRIVE_TO_BRIDGE_W_DEAD_RECKONING();			
+		if (autoStep == 3) LOWER_SAM_JACK(); 				
+		if (autoStep == 4) PRESET_FOR_TELEOP();
+		break;
+	//insert other modes here	
 		
-	}//end of DRIVE_TO_BRIDGE_W_GYRO 
+	case 0:				//no autonomous
+		break;
+	default:
+		break;
+	}//end of switch
+}//end of AutonomousPeriodic
 
 
 
-	/***************************************************************************************
-	 * Autonomous mode helper function
-	 * DRIVE_TO_BRIDGE_W_DEAD_RECKONING
-	 ****************************************************************************************/ 
-	void DRIVE_TO_BRIDGE_W_DEAD_RECKONING() {
-		driveMotorsControl(0, -1, 0); 
-		if ((GetClock() - startTime) > .6) {
+/***************************************************************************************
+ * Autonomous mode helper function
+ * DO_NOTHING
+ ****************************************************************************************/ 
+void DO_NOTHING_FOR_500MSECONDS() {
+	if ((GetClock() - startTime) > .5) {
+		++autoStep;
+		startTime = GetClock();
+	}
+}//end of DO_NOTHING_FOR_500MSECONDS
+
+
+
+/***************************************************************************************
+ * Autonomous mode helper function
+ * PRESET_FOR_TELEOP
+ ****************************************************************************************/ 
+void PRESET_FOR_TELEOP() {
+	driveMotorsControl(0, 0, 0); 	//turn off drive motors
+	shooterMotor->Set(0);			//turn off shooter motor
+	reloadBall();
+	samJackControl(false);			//lower sam jack
+	ballPickupControl(false);		//turn off pickup motor
+	//always last step so we do not increment autostep
+}//end of PRESET_FOR_TELEOP
+
+
+
+/***************************************************************************************
+ * Autonomous mode helper function
+ * INITIAL_SETUP
+ ****************************************************************************************/ 
+void INITIAL_SETUP() {
+// Power motor and setup pistons
+		shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
+		armBall();
+		// Check if we're ready to advance to the next step
+		if ((GetClock() - startTime) > 2.0) {
 			++autoStep;
 			startTime = GetClock();
 		}
-	}//end of DRIVE_TO_BRIDGE_W_DEAD_RECKONING 
+}//end of INITIAL_SETUP		
 
 
-
-	void DRIVE_TO_BRIDGE_W_DEAD_RECKONING(float time) {
-		driveMotorsControl(0, -1, 0); 
+		
+void INITIAL_SETUP(int time) {
+// Power motor and setup pistons
+		shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
+		armBall();
+		// Check if we're ready to advance to the next step
 		if ((GetClock() - startTime) > time) {
 			++autoStep;
 			startTime = GetClock();
 		}
-	}//end of DRIVE_TO_BRIDGE_W_DEAD_RECKONING 
+}//end of INITIAL_SETUP		
 
 
 
-	/***************************************************************************************
-	 * Autonomous mode helper function
-	 * LOWER_SAM_JACK
-	 ****************************************************************************************/ 
-	void LOWER_SAM_JACK() {
-		samJackControl(false);
+void INITIAL_SETUP(float time) {
+// Power motor and setup pistons
+		shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
+		armBall();
 		// Check if we're ready to advance to the next step
-		if ((GetClock() - startTime) > 2.0) {
+		if ((GetClock() - startTime) > time) {
 			++autoStep;
 			startTime = GetClock();
 		}
-	}//end of LOWER_SAM_JACK 
+}//end of INITIAL_SETUP		
 
 
 
-	/***************************************************************************************
-	 * Autonomous mode helper function
-	 * RAISE_SAM_JACK
-	 ****************************************************************************************/ 
-	void RAISE_SAM_JACK() {
-		samJackControl(true);
-		// Check if we're ready to advance to the next step
-		if ((GetClock() - startTime) > 2.0) {
-			++autoStep;
-			startTime = GetClock();
-		}
-	}//end of RAISE_SAM_JACK 
+/***************************************************************************************
+ * Autonomous mode helper function
+ * SHOOT_BALL
+ ****************************************************************************************/ 
+void SHOOT_BALL() {
+	shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
+	shootBall();
+	// Check if we're ready to advance to the next step
+	if ((GetClock() - startTime) > 0.5) {
+		++autoStep;
+		startTime = GetClock();
+	}
+}//end of SHOOT_BALL
+
+
+
+/***************************************************************************************
+ * Autonomous mode helper function
+ * LOAD_NEXT_BALL
+ ****************************************************************************************/ 
+void LOAD_NEXT_BALL() {
+	shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
+	reloadBall();
+	if ( ( (GetClock() - startTime) > 0.5) || ballLoad->Get() )  armBall();
+	//exit after 1 second regardless if ball loaded?
+	// Check if we're ready to advance to the next step
+	if ((GetClock() - startTime) > 1.0) {
+		++autoStep;
+		startTime = GetClock();
+	}
+}//end of LOAD_NEXT_BALL
+
+
+
+/***************************************************************************************
+ * Autonomous mode helper function
+ * CAMERA_TARGETING
+ ****************************************************************************************/ 
+void CAMERA_TARGETING() {
+	//grab image
+	FindTarget();
+	//TODO: write routine that moves turret to target position
+}//end of CAMERA_TARGETING 
+
+
+
+/***************************************************************************************
+ * Autonomous mode helper function
+ * DRIVE_TO_BRIDGE_W_GYRO
+ ****************************************************************************************/ 
+void DRIVE_TO_BRIDGE_W_GYRO() {
+	
+}//end of DRIVE_TO_BRIDGE_W_GYRO 
+
+
+
+/***************************************************************************************
+ * Autonomous mode helper function
+ * DRIVE_TO_BRIDGE_W_DEAD_RECKONING
+ ****************************************************************************************/ 
+void DRIVE_TO_BRIDGE_W_DEAD_RECKONING() {
+	driveMotorsControl(0, -1, 0); 
+	if ((GetClock() - startTime) > .6) {
+		++autoStep;
+		startTime = GetClock();
+	}
+}//end of DRIVE_TO_BRIDGE_W_DEAD_RECKONING 
+
+
+
+void DRIVE_TO_BRIDGE_W_DEAD_RECKONING(float time) {
+	driveMotorsControl(0, -1, 0); 
+	if ((GetClock() - startTime) > time) {
+		++autoStep;
+		startTime = GetClock();
+	}
+}//end of DRIVE_TO_BRIDGE_W_DEAD_RECKONING 
+
+
+
+/***************************************************************************************
+ * Autonomous mode helper function
+ * LOWER_SAM_JACK
+ ****************************************************************************************/ 
+void LOWER_SAM_JACK() {
+	samJackControl(false);
+	// Check if we're ready to advance to the next step
+	if ((GetClock() - startTime) > 2.0) {
+		++autoStep;
+		startTime = GetClock();
+	}
+}//end of LOWER_SAM_JACK 
+
+
+
+/***************************************************************************************
+ * Autonomous mode helper function
+ * RAISE_SAM_JACK
+ ****************************************************************************************/ 
+void RAISE_SAM_JACK() {
+	samJackControl(true);
+	// Check if we're ready to advance to the next step
+	if ((GetClock() - startTime) > 2.0) {
+		++autoStep;
+		startTime = GetClock();
+	}
+}//end of RAISE_SAM_JACK 
 
 
 
 
-	/***************************************************************************************
-	 ***************************************************************************************
-	 *           HELPER FUNCTIONS
-	 ***************************************************************************************
-	 ***************************************************************************************
-	 ***************************************************************************************
-	 ***************************************************************************************
-	 ***************************************************************************************/
+/***************************************************************************************
+ ***************************************************************************************
+ *           HELPER FUNCTIONS
+ ***************************************************************************************
+ ***************************************************************************************
+ ***************************************************************************************
+ ***************************************************************************************
+ ***************************************************************************************/
 
 
 
-	/***************************************************************************************
-	 * driveMotorsControl 
-	 * 
-	 * this function can be called by either autonomous or teleop
-	 * control functions to move the robot wheels to drive around 
-	 ****************************************************************************************/ 
-	void driveMotorsControl() {
-		// get current joystick positions
-		drive_x = driverStick->GetX();
-		drive_y = driverStick->GetY();
-		drive_rot = driverStick->GetAxis(Joystick::kTwistAxis); //y axis of 2nd analog stick
-		// if stick positions are inside of deadband then make them zero
-		if (fabs(drive_x) < JOYSTICK_DEADBAND) 		drive_x = 0;
-		if (fabs(drive_y) < JOYSTICK_DEADBAND) 		drive_y = 0;
-		if (fabs(drive_rot) < JOYSTICK_DEADBAND) 	drive_rot = 0;
-		//position drive motors according to joystick positions
-		driveMotors->MecanumDrive_Cartesian(drive_x, drive_y, drive_rot);
-	}//end of driveMotorsControl
+/***************************************************************************************
+ * driveMotorsControl 
+ * 
+ * this function can be called by either autonomous or teleop
+ * control functions to move the robot wheels to drive around 
+ ****************************************************************************************/ 
+void driveMotorsControl() {
+	// get current joystick positions
+	drive_x = driverStick->GetX();
+	drive_y = driverStick->GetY();
+	drive_rot = driverStick->GetAxis(Joystick::kTwistAxis); //y axis of 2nd analog stick
+	// if stick positions are inside of deadband then make them zero
+	if (fabs(drive_x) < JOYSTICK_DEADBAND) 		drive_x = 0;
+	if (fabs(drive_y) < JOYSTICK_DEADBAND) 		drive_y = 0;
+	if (fabs(drive_rot) < JOYSTICK_DEADBAND) 	drive_rot = 0;
+	//position drive motors according to joystick positions
+	driveMotors->MecanumDrive_Cartesian(drive_x, drive_y, drive_rot);
+}//end of driveMotorsControl
 
 
-	void driveMotorsControl(int x, int y, int rot) {
-		driveMotors->MecanumDrive_Cartesian(x, y, rot);
-	}//end of driveMotorsControl
+void driveMotorsControl(int x, int y, int rot) {
+	driveMotors->MecanumDrive_Cartesian(x, y, rot);
+}//end of driveMotorsControl
 
 
-	/***************************************************************************************
-	 * turretControl
-	 * 
-	 * this function can be called by either autonomous or teleop
-	 * control functions to move the shooter turret 
-	 ****************************************************************************************/ 
-	void turretControl() {
-		turretVal = operatorStick->GetX();//read the joystick	
-		turretVal *= -DEFAULT_TURRET_SPEED; //reduce speed by xx% and swap motor directions since opposite of joystick
+/***************************************************************************************
+ * turretControl
+ * 
+ * this function can be called by either autonomous or teleop
+ * control functions to move the shooter turret 
+ ****************************************************************************************/ 
+void turretControl() {
+	turretVal = operatorStick->GetX();//read the joystick	
+	turretVal *= -DEFAULT_TURRET_SPEED; //reduce speed by xx% and swap motor directions since opposite of joystick
 
-		//if button is pressed then use camera targetting to move turret
-		if (operatorStick->GetRawButton(CAMERA_TARGETING_BUTTON)) {
-			/*
-			FindTarget();
-			error = 160 - targetX;
-			turretVal = error * kScaling;
-			*/
-		}
+	//if button is pressed then use camera targetting to move turret
+	if (operatorStick->GetRawButton(CAMERA_TARGETING_BUTTON)) {
+		/*
+		FindTarget();
+		error = 160 - targetX;
+		turretVal = error * kScaling;
+		*/
+	}
+	
+	//if the limit switch is made in the direction we are trying to turn, then stop
+	//the motor from trying to turn
+	if ((turretLimitLeft->Get() && turretVal > 0) || (turretLimitRight->Get() && turretVal < 0)) turretVal = 0;
+	
+	turretMotor->Set(turretVal);
+}//end of TurretControl
+
+
+
+/***************************************************************************************
+ * ballPickup
+ * 
+ ****************************************************************************************/ 
+void ballPickupControl() {
+	if ( operatorStick->GetRawButton(BALL_PICKUP_BUTTON) )  ballPickup->Set(Relay::kForward);
+	else ballPickup->Set(Relay::kOff);
+}//end of ballPickup
+
+
+
+void ballPickupControl(bool on) {
+	if ( on )  ballPickup->Set(Relay::kForward);
+	else ballPickup->Set(Relay::kOff);
+}//end of ballPickup
+
+/***************************************************************************************
+ * ballHandling
+ * 
+ * Ball loading/firing - operate pistons to position ball in shooter
+ ****************************************************************************************/ 
+void ballHandlingControl() {
+	//control of lower piston
+	if ( operatorStick->GetRawButton(LOWER_LOWER_BALL_PISTON_BUTTON) ) {
+		lowerBallDown->Set(true);
+		lowerBallUp->Set(false);
+	} else if ( operatorStick->GetRawButton(RAISE_LOWER_BALL_PISTON_BUTTON) || ballLoad->Get() ) {
+		lowerBallUp->Set(true);
+		lowerBallDown->Set(false);
+	}
+	
+	//control of upper piston
+	if ( operatorStick->GetRawButton(RAISE_UPPER_BALL_PISTON_BUTTON) ) {
+		upperBallUp->Set(true);
+		upperBallDown->Set(false);
+	} else {
+		upperBallDown->Set(true);
+		upperBallUp->Set(true);
+	}
+}//end of ballHandling
+
+
+
+void reloadBall() {
+		lowerBallDown->Set(true);
+		lowerBallUp->Set(false);
+		upperBallDown->Set(true);
+		upperBallUp->Set(true);
+}//end of reloadBall
+
+
+
+void armBall() {
+		lowerBallUp->Set(true);
+		lowerBallDown->Set(false);
+		upperBallDown->Set(true);
+		upperBallUp->Set(true);
+}//end of armBall
+
+
+
+void shootBall() {
+		lowerBallUp->Set(true);
+		lowerBallDown->Set(false);
+		upperBallUp->Set(true);
+		upperBallDown->Set(false);
+}//end of shootBall
+
+
+
+/***************************************************************************************
+ * ballShooter
+ * 
+ ****************************************************************************************/ 
+void ballShooterControl() {
+	if (operatorStick->GetRawButton(BALL_SHOOTER_BUTTON)) shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
+}//end of ballShooter
+
+
+
+
+/***************************************************************************************
+ * samJack
+ * 
+ ****************************************************************************************/ 
+void samJackControl() {
+	if (operatorStick->GetRawButton(SAM_JACK_BUTTON)) {
+		bridgeUp->Set(true);
+		bridgeDown->Set(false);
+	} else {
+		bridgeUp->Set(false);
+		bridgeDown->Set(true);
+	}
+}//end of samJack
+
+
+
+void samJackControl(bool up) {
+	if (up) {
+		bridgeUp->Set(true);
+		bridgeDown->Set(false);
+	} else {
+		bridgeUp->Set(false);
+		bridgeDown->Set(true);
+	}
+}//end of samJack
+
+
+
+/***************************************************************************************
+ * FindTarget
+ * 
+ * use camera to find basketball backboard
+ ****************************************************************************************/ 
+void FindTarget() {
+	AxisCamera &camera = AxisCamera::GetInstance();
+	if (camera.IsFreshImage()) {
+		ColorImage image(IMAQ_IMAGE_HSL);
+		camera.GetImage(&image);
+		// HSL Threshold
+		BinaryImage *binImage;
+		binImage = image.ThresholdHSL(128, 255, 13, 255, 249, 255);
+		// Remove small objects
+		BinaryImage *bigObjectsImage;
+		bigObjectsImage = binImage->RemoveSmallObjects(false, 2);
+		int size = binImage->GetNumberParticles();
+		// Convex hull
+		BinaryImage *convexHullImage;
+		convexHullImage = bigObjectsImage->ConvexHull(false);
+		// Particle analysis
+		vector <ParticleAnalysisReport> *vPAR = convexHullImage->GetOrderedParticleAnalysisReports();
+		if (size > 0) {
+			for (int i = 0; i < (int) vPAR->size(); i++) {
+				ParticleAnalysisReport *par = &(vPAR->at(i));
+				int width = par->boundingRect.width;
+				int height = par->boundingRect.height;
+				float area = par->particleArea;
+				if (i == 0) {
+					maxWidth = 0;
+					targetWd = 0;
+					targetHt = 0;
+					targetX = 320;
+					targetY = 240;
+				}//end of if i == 0
+				if ((width > 40) && (area / (width*height)) > 0.75) {
+					if (width > maxWidth) maxWidth = width;
+					if (par->center_mass_y < targetY) {
+						targetWd = width;
+						targetHt = height;
+						targetX = par->center_mass_x;
+						targetY = par->center_mass_y;
+					}//end of if (par->center_mass_y < targetY)
+					printf("W = %d, H = %d, X = %d, Y = %d\n", targetWd, targetHt, targetX, targetY);
+				}//end of if ((width > 40) && (area / (width*height)) > 0.75)
+			}// end of loop
+			printf("X = %d, Y = %d\n", targetX, targetY);
+		}//end of if (size > 0)
 		
-		//if the limit switch is made in the direction we are trying to turn, then stop
-		//the motor from trying to turn
-		if ((turretLimitLeft->Get() && turretVal > 0) || (turretLimitRight->Get() && turretVal < 0)) turretVal = 0;
-		
-		turretMotor->Set(turretVal);
-	}//end of TurretControl
+		delete &image;
+		delete binImage;
+		delete bigObjectsImage;
+		delete vPAR;
+	}//end of  if (camera.IsFreshImage()) 
+}//end of findTarget
 
+};//end of class definition
 
-
-	/***************************************************************************************
-	 * ballPickup
-	 * 
-	 ****************************************************************************************/ 
-	void ballPickupControl() {
-		if ( operatorStick->GetRawButton(BALL_PICKUP_BUTTON) )  ballPickup->Set(Relay::kForward);
-		else ballPickup->Set(Relay::kOff);
-	}//end of ballPickup
-
-
-
-	void ballPickupControl(bool on) {
-		if ( on )  ballPickup->Set(Relay::kForward);
-		else ballPickup->Set(Relay::kOff);
-	}//end of ballPickup
-
-	/***************************************************************************************
-	 * ballHandling
-	 * 
-	 * Ball loading/firing - operate pistons to position ball in shooter
-	 ****************************************************************************************/ 
-	void ballHandlingControl() {
-		//control of lower piston
-		if ( operatorStick->GetRawButton(LOWER_LOWER_BALL_PISTON_BUTTON) ) {
-			lowerBallDown->Set(true);
-			lowerBallUp->Set(false);
-		} else if ( operatorStick->GetRawButton(RAISE_LOWER_BALL_PISTON_BUTTON) || ballLoad->Get() ) {
-			lowerBallUp->Set(true);
-			lowerBallDown->Set(false);
-		}
-		
-		//control of upper piston
-		if ( operatorStick->GetRawButton(RAISE_UPPER_BALL_PISTON_BUTTON) ) {
-			upperBallUp->Set(true);
-			upperBallDown->Set(false);
-		} else {
-			upperBallDown->Set(true);
-			upperBallUp->Set(true);
-		}
-	}//end of ballHandling
-
-
-
-	void reloadBall() {
-			lowerBallDown->Set(true);
-			lowerBallUp->Set(false);
-			upperBallDown->Set(true);
-			upperBallUp->Set(true);
-	}//end of reloadBall
-
-
-
-	void armBall() {
-			lowerBallUp->Set(true);
-			lowerBallDown->Set(false);
-			upperBallDown->Set(true);
-			upperBallUp->Set(true);
-	}//end of armBall
-
-
-
-	void shootBall() {
-			lowerBallUp->Set(true);
-			lowerBallDown->Set(false);
-			upperBallUp->Set(true);
-			upperBallDown->Set(false);
-	}//end of shootBall
-
-
-
-	/***************************************************************************************
-	 * ballShooter
-	 * 
-	 ****************************************************************************************/ 
-	void ballShooterControl() {
-		if (operatorStick->GetRawButton(BALL_SHOOTER_BUTTON)) shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
-	}//end of ballShooter
-
-
-
-
-	/***************************************************************************************
-	 * samJack
-	 * 
-	 ****************************************************************************************/ 
-	void samJackControl() {
-		if (operatorStick->GetRawButton(SAM_JACK_BUTTON)) {
-			bridgeUp->Set(true);
-			bridgeDown->Set(false);
-		} else {
-			bridgeUp->Set(false);
-			bridgeDown->Set(true);
-		}
-	}//end of samJack
-
-
-
-	void samJackControl(bool up) {
-		if (up) {
-			bridgeUp->Set(true);
-			bridgeDown->Set(false);
-		} else {
-			bridgeUp->Set(false);
-			bridgeDown->Set(true);
-		}
-	}//end of samJack
-
-
-
-	/***************************************************************************************
-	 * FindTarget
-	 * 
-	 * use camera to find basketball backboard
-	 ****************************************************************************************/ 
-	void FindTarget() {
-		AxisCamera &camera = AxisCamera::GetInstance();
-		if (camera.IsFreshImage()) {
-			ColorImage image(IMAQ_IMAGE_HSL);
-			camera.GetImage(&image);
-			// HSL Threshold
-			BinaryImage *binImage;
-			binImage = image.ThresholdHSL(128, 255, 13, 255, 249, 255);
-			// Remove small objects
-			BinaryImage *bigObjectsImage;
-			bigObjectsImage = binImage->RemoveSmallObjects(false, 2);
-			int size = binImage->GetNumberParticles();
-			// Convex hull
-			BinaryImage *convexHullImage;
-			convexHullImage = bigObjectsImage->ConvexHull(false);
-			// Particle analysis
-			vector <ParticleAnalysisReport> *vPAR = convexHullImage->GetOrderedParticleAnalysisReports();
-			if (size > 0) {
-				for (int i = 0; i < (int) vPAR->size(); i++) {
-					ParticleAnalysisReport *par = &(vPAR->at(i));
-					int width = par->boundingRect.width;
-					int height = par->boundingRect.height;
-					float area = par->particleArea;
-					if (i == 0) {
-						maxWidth = 0;
-						targetWd = 0;
-						targetHt = 0;
-						targetX = 320;
-						targetY = 240;
-					}//end of if i == 0
-					if ((width > 40) && (area / (width*height)) > 0.75) {
-						if (width > maxWidth) maxWidth = width;
-						if (par->center_mass_y < targetY) {
-							targetWd = width;
-							targetHt = height;
-							targetX = par->center_mass_x;
-							targetY = par->center_mass_y;
-						}//end of if (par->center_mass_y < targetY)
-						printf("W = %d, H = %d, X = %d, Y = %d\n", targetWd, targetHt, targetX, targetY);
-					}//end of if ((width > 40) && (area / (width*height)) > 0.75)
-				}// end of loop
-				printf("X = %d, Y = %d\n", targetX, targetY);
-			}//end of if (size > 0)
-			
-			delete &image;
-			delete binImage;
-			delete bigObjectsImage;
-			delete vPAR;
-		}//end of  if (camera.IsFreshImage()) 
-	}//end of findTarget
-
-	};//end of class definition
-
-	START_ROBOT_CLASS(LunatecsOffseason2012);
+START_ROBOT_CLASS(LunatecsOffseason2012);
