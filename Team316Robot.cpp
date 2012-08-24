@@ -2,16 +2,13 @@
 #include "WPILib.h"
 
 /*****************************************************************************************
- * TODO List
- * 
- * TODO: verify drive train motors work and are of correct orientation
- * TODO: verify all control buttons and joysticks etc, control the correct devices
- * TODO: write autonomous modes 1, 2, 3, 4, 5
- * TODO: write 
- *			- CAMERA_TARGETING
- *			- DRIVE_TO_BRIDGE
- *			- LOWER_SAM_JACK
- *			- RAISE_SAM_JACK
+ * TODO: write autonomous modes 1
+ * TODO: write autonomous modes 2
+ * TODO: write autonomous modes 3
+ * TODO: write autonomous modes 4
+ * TODO: write autonomous modes 5
+ * TODO: write - CAMERA_TARGETING
+ * TODO: write - DRIVE_TO_BRIDGE
  *
 *****************************************************************************************/
 
@@ -611,15 +608,16 @@ void driveMotorsControl()
 {
 	// get current joystick positions
 	drive_x = driverStick->GetX();
-	float y1 = driverStick->GetY();
-	float y2 = driverStick->GetAxis(Joystick::kThrottleAxis);
+	drive_y = driverStick->GetY();
+	float y2 = driverStick->GetAxis(Joystick::kDefaultZAxis);
 	drive_rot = driverStick->GetAxis(Joystick::kTwistAxis); // y axis of 2nd analog stick
-			
+	float y_final;
+	
 	// if stick positions are inside of deadband then make them zero
 	if (fabs(drive_x) < JOYSTICK_DEADBAND)
 		drive_x = 0;
-	if (fabs(y1) < JOYSTICK_DEADBAND)
-		y1 = 0;
+	if (fabs(drive_y) < JOYSTICK_DEADBAND)
+		drive_y = 0;
 	if (fabs(y2) < JOYSTICK_DEADBAND)
 		y2 = 0;
 	if (fabs(drive_rot) < JOYSTICK_DEADBAND)
@@ -634,7 +632,7 @@ void driveMotorsControl()
 		drive_y = y1 < y2 ? y1 : y2;
 	*/
 	// position drive motors according to joystick positions
-	driveMotors->MecanumDrive_Cartesian(drive_x, drive_y, drive_rot);
+	driveMotors->MecanumDrive_Cartesian(drive_x, y_final, drive_rot);
 } // end of driveMotorsControl
 
 
