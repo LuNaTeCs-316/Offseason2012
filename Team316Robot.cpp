@@ -163,7 +163,9 @@ Team316Robot(void) : autoStep(1)
 	driverStick = new Joystick(1);
 	operatorStick = new Joystick(2);
 	
-	driveMotors = new RobotDrive(1, 2);
+	//	RobotDrive(UINT32 frontLeftMotorChannel, UINT32 rearLeftMotorChannel,
+	//				UINT32 frontRightMotorChannel, UINT32 rearRightMotorChannel);
+	driveMotors = new RobotDrive(3, 1, 4, 2);
 	driveMotors->SetExpiration(0.75);
 	shooterMotor = new Jaguar(5);
 	turretMotor = new Jaguar(6);
