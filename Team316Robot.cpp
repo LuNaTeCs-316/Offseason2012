@@ -70,16 +70,23 @@
  ****************************************************************************************/ 
 const float JOYSTICK_DEADBAND 		= 0.2; 	// total joystick travel is -1.0 TO 1.0
 const float DEFAULT_SHOOTER_SPEED 	= -1.0; // in percent 1.0 = 100%
+const float FASTEST_SHOOTER_SPEED 	= -1.0; // in percent 1.0 = 100%
+const float MEDIUM_FAST_SHOOTER_SPEED 	= -.9; // in percent 1.0 = 100%
+const float MEDIUM_SLOW_SHOOTER_SPEED 	= -.8; // in percent 1.0 = 100%
+const float SLOWEST_SHOOTER_SPEED 	= -.7; // in percent 1.0 = 100%
 const float DEFAULT_TURRET_SPEED 	= .5; 	// in percent 1.0 = 100%
 
 // button desgnations on operator control joystick
-const int 	RAISE_UPPER_BALL_PISTON_BUTTON  = 1;
-const int 	BALL_PICKUP_BUTTON				= 2;
+const int 	RAISE_FIRING_PISTON_BUTTON  = 1;
+const int 	BALL_PICKUP_BUTTON				= 3;
 const int 	CAMERA_TARGETING_BUTTON 		= 3;
-const int 	LOWER_LOWER_BALL_PISTON_BUTTON 	= 4;
-const int 	RAISE_LOWER_BALL_PISTON_BUTTON	= 5;
+const int 	LOWER_LOADING_PISTON_BUTTON 	= 4;
+const int 	RAISE_LOADING_PISTON_BUTTON	= 5;
 const int 	SAM_JACK_BUTTON					= 6;
-const int 	BALL_SHOOTER_BUTTON				= 10;
+const int 	SLOWEST_BALL_SHOOTER_BUTTON		= 7;
+const int 	MEDIUM_SLOW_BALL_SHOOTER_BUTTON	= 8;
+const int 	MEDIUM_FAST_BALL_SHOOTER_BUTTON	= 9;
+const int 	FASTEST_BALL_SHOOTER_BUTTON		= 10;
 
 class Team316Robot : public IterativeRobot
 {
@@ -129,7 +136,7 @@ int autoMode;		// which autonomous mode are we running?
 int autoStep;		// which step in autonomous mode are we in?
 double startTime;	// used to record the starting time in autonomous
 bool autoTimedOut;	// did autonomous mode timeout
-
+int counter; //counts calls for piston time delay
 // Camera data
 int maxWidth;
 int targetWd;
@@ -140,6 +147,7 @@ int targetY;
 // Joystick positions for driving robot wheels
 float drive_x;
 float drive_y;
+float drive_y2;
 float drive_rot;
 
 // Shooter values
@@ -197,7 +205,12 @@ Team316Robot(void) : autoStep(1)
  ****************************************************************************************/ 
 void RobotInit(void)
 {
+	// Invert right side drive motors
+	driveMotors->SetInvertedMotor(RobotDrive::kFrontRightMotor, true);
+	driveMotors->SetInvertedMotor(RobotDrive::kRearRightMotor, true);
+	
 	driveMotorsControl(0, 0, 0); 	// turn off drive motors
+	
 	shooterMotor->Set(0);			// turn off shooter motor
 	armBall();
 	samJackControl(false);			// lower sam jack
@@ -289,8 +302,8 @@ void TeleopPeriodic()
 	driveMotorsControl(); 			// control the wheel drive motors using joystick input
 	turretControl();				// control the turret if operator joystick moved
 	ballPickupControl();			// pickup ball if operator joystick button pressed
-	ballHandlingControl();			// operate pistons to position ball in shooter if operator joystick button pressed
-	ballShooterControl();			// shoot ball if operator joystick button pressed
+	ballLoadingControl();			// operate pistons to position ball in shooter if operator joystick button pressed
+	shooterSpeedControl();			// shoot ball if operator joystick button pressed
 	samJackControl();				// operate bridge manipulator if operator joystick button pressed
 } // end of TeleopPeriodic
 
@@ -598,16 +611,27 @@ void driveMotorsControl()
 {
 	// get current joystick positions
 	drive_x = driverStick->GetX();
-	drive_y = driverStick->GetY();
+	float y1 = driverStick->GetY();
+	float y2 = driverStick->GetAxis(Joystick::kThrottleAxis);
 	drive_rot = driverStick->GetAxis(Joystick::kTwistAxis); // y axis of 2nd analog stick
-	
+			
 	// if stick positions are inside of deadband then make them zero
 	if (fabs(drive_x) < JOYSTICK_DEADBAND)
 		drive_x = 0;
 	if (fabs(drive_y) < JOYSTICK_DEADBAND)
 		drive_y = 0;
+	if (fabs(drive_y2) < JOYSTICK_DEADBAND)
+		drive_y2 = 0;
 	if (fabs(drive_rot) < JOYSTICK_DEADBAND)
 		drive_rot = 0;
+	
+	// Send data to SmartDashboard
+	// SmartDashboard::GetInstance()->PutFloat(drive_y);
+	
+	if (y1 >= 0)
+		drive_y = y1 > y2 ? y1 : y2;
+	else if (drive_y < 0)
+		drive_y = y1 < y2 ? y1 : y2;
 	
 	// position drive motors according to joystick positions
 	driveMotors->MecanumDrive_Cartesian(drive_x, drive_y, drive_rot);
@@ -658,7 +682,7 @@ void turretControl()
 void ballPickupControl()
 {
 	if (operatorStick->GetRawButton(BALL_PICKUP_BUTTON)) 
-		ballPickup->Set(Relay::kForward);
+		ballPickup->Set(Relay::kReverse);
 	else
 		ballPickup->Set(Relay::kOff);
 } // end of ballPickup
@@ -673,27 +697,36 @@ void ballPickupControl(bool on)
 		ballPickup->Set(Relay::kOff);
 } // end of ballPickup
 
+
+
 /***************************************************************************************
  * ballHandling
  * 
  * Ball loading/firing - operate pistons to position ball in shooter
  ****************************************************************************************/ 
-void ballHandlingControl()
+void ballLoadingControl()
 {
 	// control of lower piston
-	if ( operatorStick->GetRawButton(LOWER_LOWER_BALL_PISTON_BUTTON) )
+	if ( !(ballLoad->Get()) ) 
 	{
+		counter = 0;
 		lowerBallDown->Set(true);
 		lowerBallUp->Set(false);
 	}
-	else if ( operatorStick->GetRawButton(RAISE_LOWER_BALL_PISTON_BUTTON) || ballLoad->Get() )
+	else if ( (operatorStick->GetRawButton(RAISE_LOADING_PISTON_BUTTON)) 
+															|| (ballLoad->Get()) )
 	{
-		lowerBallUp->Set(true);
-		lowerBallDown->Set(false);
+		counter++; 
+		if (counter >= 10)
+		{
+			lowerBallUp->Set(true);
+			lowerBallDown->Set(false);
+		}
+		
 	}
 	
 	// control of upper piston
-	if ( operatorStick->GetRawButton(RAISE_UPPER_BALL_PISTON_BUTTON) )
+	if ( operatorStick->GetRawButton(RAISE_FIRING_PISTON_BUTTON) )
 	{
 		upperBallUp->Set(true);
 		upperBallDown->Set(false);
@@ -701,7 +734,7 @@ void ballHandlingControl()
 	else
 	{
 		upperBallDown->Set(true);
-		upperBallUp->Set(true);
+		upperBallUp->Set(false);
 	}
 } // end of ballHandling
 
@@ -741,10 +774,18 @@ void shootBall()
  * ballShooter
  * 
  ****************************************************************************************/ 
-void ballShooterControl()
+void shooterSpeedControl()
 {
-	if (operatorStick->GetRawButton(BALL_SHOOTER_BUTTON))
+	if ( operatorStick->GetRawButton(FASTEST_BALL_SHOOTER_BUTTON) )
 		shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
+	else if ( operatorStick->GetRawButton(MEDIUM_FAST_BALL_SHOOTER_BUTTON) )
+		shooterMotor->Set(MEDIUM_FAST_SHOOTER_SPEED);
+	else if ( operatorStick->GetRawButton(MEDIUM_SLOW_BALL_SHOOTER_BUTTON) )
+		shooterMotor->Set(MEDIUM_SLOW_SHOOTER_SPEED);
+	else if ( operatorStick->GetRawButton(SLOWEST_BALL_SHOOTER_BUTTON) )
+		shooterMotor->Set(SLOWEST_SHOOTER_SPEED);
+	else 
+		shooterMotor->Set(0);
 } // end of ballShooter
 
 
