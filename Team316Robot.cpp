@@ -618,21 +618,21 @@ void driveMotorsControl()
 	// if stick positions are inside of deadband then make them zero
 	if (fabs(drive_x) < JOYSTICK_DEADBAND)
 		drive_x = 0;
-	if (fabs(drive_y) < JOYSTICK_DEADBAND)
-		drive_y = 0;
-	if (fabs(drive_y2) < JOYSTICK_DEADBAND)
-		drive_y2 = 0;
+	if (fabs(y1) < JOYSTICK_DEADBAND)
+		y1 = 0;
+	if (fabs(y2) < JOYSTICK_DEADBAND)
+		y2 = 0;
 	if (fabs(drive_rot) < JOYSTICK_DEADBAND)
 		drive_rot = 0;
 	
 	// Send data to SmartDashboard
 	// SmartDashboard::GetInstance()->PutFloat(drive_y);
 	
-	if (y1 >= 0)
+/*	if (y1 >= 0)
 		drive_y = y1 > y2 ? y1 : y2;
 	else if (drive_y < 0)
 		drive_y = y1 < y2 ? y1 : y2;
-	
+	*/
 	// position drive motors according to joystick positions
 	driveMotors->MecanumDrive_Cartesian(drive_x, drive_y, drive_rot);
 } // end of driveMotorsControl
