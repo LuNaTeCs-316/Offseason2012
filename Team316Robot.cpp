@@ -156,7 +156,7 @@ public:
  * 
  * The only constructor; allocates memory for the dynamic member variables.
  ****************************************************************************************/ 
-Team316Robot(void)
+Team316Robot(void) : autoStep(1)
 {
 	ds = DriverStation::GetInstance();
 	
@@ -284,12 +284,12 @@ void TeleopInit()
  ****************************************************************************************/ 
 void TeleopPeriodic()
 {
-	driveMotorsControl(); 			//control the wheel drive motors using joystick input
-	turretControl();				//control the turret if operator joystick moved
-	ballPickupControl();			//pickup ball if operator joystick button pressed
-	ballHandlingControl();			//operate pistons to position ball in shooter if operator joystick button pressed
-	ballShooterControl();			//shoot ball if operator joystick button pressed
-	samJackControl();				//operate bridge manipulator if operator joystick button pressed
+	driveMotorsControl(); 			// control the wheel drive motors using joystick input
+	turretControl();				// control the turret if operator joystick moved
+	ballPickupControl();			// pickup ball if operator joystick button pressed
+	ballHandlingControl();			// operate pistons to position ball in shooter if operator joystick button pressed
+	ballShooterControl();			// shoot ball if operator joystick button pressed
+	samJackControl();				// operate bridge manipulator if operator joystick button pressed
 } // end of TeleopPeriodic
 
 
@@ -598,10 +598,15 @@ void driveMotorsControl()
 	drive_x = driverStick->GetX();
 	drive_y = driverStick->GetY();
 	drive_rot = driverStick->GetAxis(Joystick::kTwistAxis); // y axis of 2nd analog stick
+	
 	// if stick positions are inside of deadband then make them zero
-	if (fabs(drive_x) < JOYSTICK_DEADBAND) 		drive_x = 0;
-	if (fabs(drive_y) < JOYSTICK_DEADBAND) 		drive_y = 0;
-	if (fabs(drive_rot) < JOYSTICK_DEADBAND) 	drive_rot = 0;
+	if (fabs(drive_x) < JOYSTICK_DEADBAND)
+		drive_x = 0;
+	if (fabs(drive_y) < JOYSTICK_DEADBAND)
+		drive_y = 0;
+	if (fabs(drive_rot) < JOYSTICK_DEADBAND)
+		drive_rot = 0;
+	
 	// position drive motors according to joystick positions
 	driveMotors->MecanumDrive_Cartesian(drive_x, drive_y, drive_rot);
 } // end of driveMotorsControl
@@ -636,7 +641,8 @@ void turretControl()
 	
 	// if the limit switch is made in the direction we are trying to turn, then stop
 	// the motor from trying to turn
-	if ((turretLimitLeft->Get() && turretVal > 0) || (turretLimitRight->Get() && turretVal < 0)) turretVal = 0;
+	if ((turretLimitLeft->Get() && turretVal > 0) || (turretLimitRight->Get() && turretVal < 0))
+		turretVal = 0;
 	
 	turretMotor->Set(turretVal);
 } // end of TurretControl
@@ -649,16 +655,20 @@ void turretControl()
  ****************************************************************************************/ 
 void ballPickupControl()
 {
-	if ( operatorStick->GetRawButton(BALL_PICKUP_BUTTON) )  ballPickup->Set(Relay::kForward);
-	else ballPickup->Set(Relay::kOff);
+	if (operatorStick->GetRawButton(BALL_PICKUP_BUTTON)) 
+		ballPickup->Set(Relay::kForward);
+	else
+		ballPickup->Set(Relay::kOff);
 } // end of ballPickup
 
 
 
 void ballPickupControl(bool on)
 {
-	if ( on )  ballPickup->Set(Relay::kForward);
-	else ballPickup->Set(Relay::kOff);
+	if (on)
+		ballPickup->Set(Relay::kForward);
+	else
+		ballPickup->Set(Relay::kOff);
 } // end of ballPickup
 
 /***************************************************************************************
@@ -731,7 +741,8 @@ void shootBall()
  ****************************************************************************************/ 
 void ballShooterControl()
 {
-	if (operatorStick->GetRawButton(BALL_SHOOTER_BUTTON)) shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
+	if (operatorStick->GetRawButton(BALL_SHOOTER_BUTTON))
+		shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
 } // end of ballShooter
 
 
@@ -785,16 +796,20 @@ void FindTarget()
 	{
 		ColorImage image(IMAQ_IMAGE_HSL);
 		camera.GetImage(&image);
+		
 		// HSL Threshold
 		BinaryImage *binImage;
 		binImage = image.ThresholdHSL(128, 255, 13, 255, 249, 255);
+		
 		// Remove small objects
 		BinaryImage *bigObjectsImage;
 		bigObjectsImage = binImage->RemoveSmallObjects(false, 2);
 		int size = binImage->GetNumberParticles();
+		
 		// Convex hull
 		BinaryImage *convexHullImage;
 		convexHullImage = bigObjectsImage->ConvexHull(false);
+		
 		// Particle analysis
 		vector <ParticleAnalysisReport> *vPAR = convexHullImage->GetOrderedParticleAnalysisReports();
 		if (size > 0)
@@ -805,6 +820,7 @@ void FindTarget()
 				int width = par->boundingRect.width;
 				int height = par->boundingRect.height;
 				float area = par->particleArea;
+				
 				if (i == 0)
 				{
 					maxWidth = 0;
@@ -813,9 +829,12 @@ void FindTarget()
 					targetX = 320;
 					targetY = 240;
 				} // end of if (i == 0)
+				
 				if ((width > 40) && (area / (width*height)) > 0.75)
 				{
-					if (width > maxWidth) maxWidth = width;
+					if (width > maxWidth)
+						maxWidth = width;
+					
 					if (par->center_mass_y < targetY)
 					{
 						targetWd = width;
@@ -823,9 +842,11 @@ void FindTarget()
 						targetX = par->center_mass_x;
 						targetY = par->center_mass_y;
 					} // end of if (par->center_mass_y < targetY)
+					
 					printf("W = %d, H = %d, X = %d, Y = %d\n", targetWd, targetHt, targetX, targetY);
 				} // end of if ((width > 40) && (area / (width*height)) > 0.75)
 			} // end of loop
+			
 			printf("X = %d, Y = %d\n", targetX, targetY);
 		} // end of if (size > 0)
 		
