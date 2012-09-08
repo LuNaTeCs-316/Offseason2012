@@ -74,11 +74,11 @@ const float SLOWEST_SHOOTER_SPEED 	= -.7; // in percent 1.0 = 100%
 const float DEFAULT_TURRET_SPEED 	= .5; 	// in percent 1.0 = 100%
 
 // button desgnations on operator control joystick
-const int 	RAISE_FIRING_PISTON_BUTTON  = 1;
+const int 	RAISE_FIRING_PISTON_BUTTON  	= 1;
 const int 	BALL_PICKUP_BUTTON				= 3;
 const int 	CAMERA_TARGETING_BUTTON 		= 3;
 const int 	LOWER_LOADING_PISTON_BUTTON 	= 4;
-const int 	RAISE_LOADING_PISTON_BUTTON	= 5;
+const int 	RAISE_LOADING_PISTON_BUTTON		= 5;
 const int 	SAM_JACK_BUTTON					= 6;
 const int 	SLOWEST_BALL_SHOOTER_BUTTON		= 7;
 const int 	MEDIUM_SLOW_BALL_SHOOTER_BUTTON	= 8;
@@ -133,7 +133,7 @@ int autoMode;		// which autonomous mode are we running?
 int autoStep;		// which step in autonomous mode are we in?
 double startTime;	// used to record the starting time in autonomous
 bool autoTimedOut;	// did autonomous mode timeout
-int counter; //counts calls for piston time delay
+
 // Camera data
 int maxWidth;
 int targetWd;
@@ -226,7 +226,11 @@ void RobotInit(void)
 	compressor->Start(); // will run in a seperate thread and running depending upon pressure
 	
 	drive_x = drive_y = drive_rot = 0;
-	turretVal = 0; 	
+	turretVal = 0;
+	
+	// test printf
+	printf("Robot Initialized...\n");
+	
 } // end of RobotInit
 
 	
@@ -609,17 +613,15 @@ void driveMotorsControl()
 	// get current joystick positions
 	drive_x = driverStick->GetX();
 	drive_y = driverStick->GetY();
-	float y2 = driverStick->GetAxis(Joystick::kDefaultZAxis);
+	//float y2 = driverStick->GetAxis(Joystick::kDefaultZAxis);
 	drive_rot = driverStick->GetAxis(Joystick::kTwistAxis); // y axis of 2nd analog stick
-	float y_final;
+	//float y_final;
 	
 	// if stick positions are inside of deadband then make them zero
 	if (fabs(drive_x) < JOYSTICK_DEADBAND)
 		drive_x = 0;
 	if (fabs(drive_y) < JOYSTICK_DEADBAND)
 		drive_y = 0;
-	if (fabs(y2) < JOYSTICK_DEADBAND)
-		y2 = 0;
 	if (fabs(drive_rot) < JOYSTICK_DEADBAND)
 		drive_rot = 0;
 	
@@ -632,7 +634,7 @@ void driveMotorsControl()
 		drive_y = y1 < y2 ? y1 : y2;
 	*/
 	// position drive motors according to joystick positions
-	driveMotors->MecanumDrive_Cartesian(drive_x, y_final, drive_rot);
+	driveMotors->MecanumDrive_Cartesian(drive_x, drive_y, drive_rot);
 } // end of driveMotorsControl
 
 
@@ -705,22 +707,24 @@ void ballPickupControl(bool on)
 void ballLoadingControl()
 {
 	// control of lower piston
-	if ( !(ballLoad->Get()) ) 
+	
+	// check if the buttons are pressed
+	
+	if (operatorStick->GetRawButton(RAISE_LOADING_PISTON_BUTTON))
+		printf("Button 5 Pressed\n");
+	if (operatorStick->GetRawButton(LOWER_LOADING_PISTON_BUTTON))
+		printf("Button 4 Pressed\n");
+		
+	if ( ballLoad->Get() || (operatorStick->GetRawButton(RAISE_LOADING_PISTON_BUTTON)) 														|| (ballLoad->Get()) )
 	{
-		counter = 0;
+		lowerBallUp->Set(true);
+		lowerBallDown->Set(false);	
+	}
+	
+	else if ( !(ballLoad->Get()) || operatorStick->GetRawButton(LOWER_LOADING_PISTON_BUTTON)) 
+	{
 		lowerBallDown->Set(true);
 		lowerBallUp->Set(false);
-	}
-	else if ( (operatorStick->GetRawButton(RAISE_LOADING_PISTON_BUTTON)) 
-															|| (ballLoad->Get()) )
-	{
-		counter++; 
-		if (counter >= 10)
-		{
-			lowerBallUp->Set(true);
-			lowerBallDown->Set(false);
-		}
-		
 	}
 	
 	// control of upper piston
@@ -729,11 +733,13 @@ void ballLoadingControl()
 		upperBallUp->Set(true);
 		upperBallDown->Set(false);
 	}
+	
 	else
 	{
 		upperBallDown->Set(true);
 		upperBallUp->Set(false);
 	}
+	
 } // end of ballHandling
 
 
