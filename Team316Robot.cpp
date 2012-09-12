@@ -75,7 +75,7 @@ const float DEFAULT_TURRET_SPEED 	= .5; 	// in percent 1.0 = 100%
 
 // button desgnations on operator control joystick
 const int 	RAISE_FIRING_PISTON_BUTTON  	= 1;
-const int 	BALL_PICKUP_BUTTON				= 3;
+const int 	BALL_PICKUP_BUTTON				= 2;
 const int 	CAMERA_TARGETING_BUTTON 		= 3;
 const int 	LOWER_LOADING_PISTON_BUTTON 	= 4;
 const int 	RAISE_LOADING_PISTON_BUTTON		= 5;
@@ -423,15 +423,16 @@ void PRESET_FOR_TELEOP()
  ****************************************************************************************/ 
 void INITIAL_SETUP()
 {
-// Power motor and setup pistons
-		shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
-		armBall();
-		// Check if we're ready to advance to the next step
-		if ((GetClock() - startTime) > 2.0)
-		{
-			++autoStep;
-			startTime = GetClock();
-		}
+	// Power motor and setup pistons
+	shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
+	armBall();
+	
+	// Check if we're ready to advance to the next step
+	if ((GetClock() - startTime) > 2.0)
+	{
+		++autoStep;
+		startTime = GetClock();
+	}
 } // end of INITIAL_SETUP		
 
 
@@ -706,36 +707,56 @@ void ballPickupControl(bool on)
  ****************************************************************************************/ 
 void ballLoadingControl()
 {
-	// control of lower piston
-	
 	// check if the buttons are pressed
 	
+	static int counter = 0;		// counter is static so that it is only initialized on the first call
+		
 	if (operatorStick->GetRawButton(RAISE_LOADING_PISTON_BUTTON))
 		printf("Button 5 Pressed\n");
 	if (operatorStick->GetRawButton(LOWER_LOADING_PISTON_BUTTON))
 		printf("Button 4 Pressed\n");
-		
-	if ( ballLoad->Get() || (operatorStick->GetRawButton(RAISE_LOADING_PISTON_BUTTON)) 														|| (ballLoad->Get()) )
-	{
-		lowerBallUp->Set(true);
-		lowerBallDown->Set(false);	
-	}
 	
-	else if ( !(ballLoad->Get()) || operatorStick->GetRawButton(LOWER_LOADING_PISTON_BUTTON)) 
+	// control of lower piston
+	
+	if ( !(ballLoad->Get()) || operatorStick->GetRawButton(LOWER_LOADING_PISTON_BUTTON)) 
 	{
+		// Lower the loading piston
+		
 		lowerBallDown->Set(true);
 		lowerBallUp->Set(false);
+		
+		counter = 0;	// set counter to 0 to reset for the next loop
 	}
+	
+	else if ( (operatorStick->GetRawButton(RAISE_LOADING_PISTON_BUTTON) || ballLoad->Get() ) 														|| (ballLoad->Get()) )
+	{
+		// Raise the loading piston after a delay
+		
+		counter++;
+		
+		if (counter >= 20)
+		{
+			lowerBallUp->Set(true);
+			lowerBallDown->Set(false);
+		}
+			
+	}
+	
+	
 	
 	// control of upper piston
 	if ( operatorStick->GetRawButton(RAISE_FIRING_PISTON_BUTTON) )
 	{
+		// raise the firing piston
+		
 		upperBallUp->Set(true);
 		upperBallDown->Set(false);
 	}
 	
 	else
 	{
+		// lower the firing piston
+		
 		upperBallDown->Set(true);
 		upperBallUp->Set(false);
 	}
