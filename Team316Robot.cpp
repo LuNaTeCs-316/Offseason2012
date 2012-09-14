@@ -354,8 +354,18 @@ void AutonomousPeriodic()
 			if (autoStep == 2) SHOOT_BALL(); 				// takes 500ms
 			if (autoStep == 3) DO_NOTHING_FOR_500MSECONDS();
 			if (autoStep == 4) LOAD_NEXT_BALL(); 			// takes 1 second
-			if (autoStep == 5) SHOOT_BALL(); 				// takes 500ms
-			if (autoStep == 6) PRESET_FOR_TELEOP();
+			if (autoStep == 5)
+			{
+				if (ballLoad->Get() || GetClock() - startTime > 0.5)
+				{
+					armBall();
+					startTime = GetClock();
+					autoStep++;
+				}
+			}
+			if (autoStep == 6) DO_NOTHING_FOR_500MSECONDS();
+			if (autoStep == 7) SHOOT_BALL(); 				// takes 500ms
+			if (autoStep == 8) PRESET_FOR_TELEOP();
 			break;
 		case 2:	// Autonomous Mode Two
 			if (autoStep == 0) autoStep = 1;				
@@ -490,13 +500,13 @@ void SHOOT_BALL()
  * LOAD_NEXT_BALL
  ****************************************************************************************/ 
 void LOAD_NEXT_BALL()
-{
+{	
 	shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
 	reloadBall();
-	if ( ( (GetClock() - startTime) > 0.5) || ballLoad->Get() )  armBall();
+	
 	// exit after 1 second regardless if ball loaded?
 	// Check if we're ready to advance to the next step
-	if ((GetClock() - startTime) > 1.0)
+	if ((GetClock() - startTime) > 1.5)
 	{
 		++autoStep;
 		startTime = GetClock();
@@ -535,7 +545,7 @@ void DRIVE_TO_BRIDGE_W_GYRO()
  ****************************************************************************************/ 
 void DRIVE_TO_BRIDGE_W_DEAD_RECKONING()
 {
-	driveMotorsControl(0, -1, 0); 
+	driveMotorsControl(0, 1, 0); 
 	if ((GetClock() - startTime) > .6)
 	{
 		++autoStep;
@@ -718,7 +728,7 @@ void ballLoadingControl()
 	
 	// control of lower piston
 	
-	if ( !(ballLoad->Get()) || operatorStick->GetRawButton(LOWER_LOADING_PISTON_BUTTON)) 
+	if (operatorStick->GetRawButton(LOWER_LOADING_PISTON_BUTTON)) 
 	{
 		// Lower the loading piston
 		
@@ -740,6 +750,14 @@ void ballLoadingControl()
 			lowerBallDown->Set(false);
 		}
 			
+	}
+	
+	else
+	{
+		lowerBallUp->Set(false);
+		lowerBallDown->Set(true);
+		
+		counter = 0;
 	}
 	
 	
@@ -770,7 +788,7 @@ void reloadBall()
 	lowerBallDown->Set(true);
 	lowerBallUp->Set(false);
 	upperBallDown->Set(true);
-	upperBallUp->Set(true);
+	upperBallUp->Set(false);
 } // end of reloadBall
 
 
@@ -780,7 +798,7 @@ void armBall()
 	lowerBallUp->Set(true);
 	lowerBallDown->Set(false);
 	upperBallDown->Set(true);
-	upperBallUp->Set(true);
+	upperBallUp->Set(false);
 } // end of armBall
 
 
