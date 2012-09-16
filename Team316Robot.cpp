@@ -66,7 +66,7 @@
  * define global constants 
  ****************************************************************************************/ 
 const float JOYSTICK_DEADBAND 		= 0.2; 	// total joystick travel is -1.0 TO 1.0
-const float DEFAULT_SHOOTER_SPEED 	= -1.0; // in percent 1.0 = 100%
+const float DEFAULT_SHOOTER_SPEED 	= -0.9; // in percent 1.0 = 100%
 const float FASTEST_SHOOTER_SPEED 	= -1.0; // in percent 1.0 = 100%
 const float MEDIUM_FAST_SHOOTER_SPEED 	= -.9; // in percent 1.0 = 100%
 const float MEDIUM_SLOW_SHOOTER_SPEED 	= -.8; // in percent 1.0 = 100%
@@ -367,7 +367,29 @@ void AutonomousPeriodic()
 			if (autoStep == 7) SHOOT_BALL(); 				// takes 500ms
 			if (autoStep == 8) PRESET_FOR_TELEOP();
 			break;
-		case 2:	// Autonomous Mode Two
+		case 2:
+			if (autoStep == 0) autoStep = 1;				
+			if (autoStep == 1) INITIAL_SETUP();				// takes 2 seconds by default
+			if (autoStep == 2) SHOOT_BALL(); 				// takes 500ms
+			if (autoStep == 3) DO_NOTHING_FOR_500MSECONDS();
+			if (autoStep == 4) LOAD_NEXT_BALL(); 			// takes 1 second
+			if (autoStep == 5)
+			{
+				if (ballLoad->Get() || GetClock() - startTime > 0.5)
+				{
+					armBall();
+					startTime = GetClock();
+					autoStep++;
+				}
+			}
+			if (autoStep == 6) DO_NOTHING_FOR_500MSECONDS();
+			if (autoStep == 7) SHOOT_BALL();	// takes 500ms
+			if (autoStep == 8) RAISE_SAM_JACK(); 			
+			if (autoStep == 9) DRIVE_TO_BRIDGE_W_DEAD_RECKONING();			
+			if (autoStep == 10) LOWER_SAM_JACK();
+			if (autoStep == 11) PRESET_FOR_TELEOP();
+			break;
+		/*case 2:	// Autonomous Mode Two
 			if (autoStep == 0) autoStep = 1;				
 			if (autoStep == 1) CAMERA_TARGETING(); 			// takes 3 seconds
 			if (autoStep == 2) INITIAL_SETUP(1);			// takes 1 seconds
@@ -377,6 +399,7 @@ void AutonomousPeriodic()
 			if (autoStep == 6) SHOOT_BALL(); 				// takes 500ms
 			if (autoStep == 7) PRESET_FOR_TELEOP();
 			break;
+		*/
 		case 4:	// Autonomous Mode Four
 			if (autoStep == 0) autoStep = 1;				
 			if (autoStep == 1) RAISE_SAM_JACK(); 			
@@ -506,7 +529,7 @@ void LOAD_NEXT_BALL()
 	
 	// exit after 1 second regardless if ball loaded?
 	// Check if we're ready to advance to the next step
-	if ((GetClock() - startTime) > 1.5)
+	if ((GetClock() - startTime) > 1.0)
 	{
 		++autoStep;
 		startTime = GetClock();
@@ -546,7 +569,7 @@ void DRIVE_TO_BRIDGE_W_GYRO()
 void DRIVE_TO_BRIDGE_W_DEAD_RECKONING()
 {
 	driveMotorsControl(0, 1, 0); 
-	if ((GetClock() - startTime) > .6)
+	if ((GetClock() - startTime) > 1.3)
 	{
 		++autoStep;
 		startTime = GetClock();
@@ -694,6 +717,8 @@ void ballPickupControl()
 {
 	if (operatorStick->GetRawButton(BALL_PICKUP_BUTTON)) 
 		ballPickup->Set(Relay::kReverse);
+	else if (operatorStick->GetRawButton(11))
+		ballPickup->Set(Relay::kForward);
 	else
 		ballPickup->Set(Relay::kOff);
 } // end of ballPickup
