@@ -69,7 +69,7 @@ const float JOYSTICK_DEADBAND 		= 0.2; 	// total joystick travel is -1.0 TO 1.0
 const float DEFAULT_SHOOTER_SPEED 	= -0.9; // in percent 1.0 = 100%
 const float FASTEST_SHOOTER_SPEED 	= -1.0; // in percent 1.0 = 100%
 const float MEDIUM_FAST_SHOOTER_SPEED 	= -.9; // in percent 1.0 = 100%
-const float MEDIUM_SLOW_SHOOTER_SPEED 	= -.8; // in percent 1.0 = 100%
+const float MEDIUM_SLOW_SHOOTER_SPEED 	= -.75; // in percent 1.0 = 100%
 const float SLOWEST_SHOOTER_SPEED 	= -.7; // in percent 1.0 = 100%
 const float DEFAULT_TURRET_SPEED 	= .5; 	// in percent 1.0 = 100%
 
