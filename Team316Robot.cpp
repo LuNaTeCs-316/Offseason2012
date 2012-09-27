@@ -85,7 +85,7 @@ const int 	MEDIUM_SLOW_BALL_SHOOTER_BUTTON	= 8;
 const int 	MEDIUM_FAST_BALL_SHOOTER_BUTTON	= 9;
 const int 	FASTEST_BALL_SHOOTER_BUTTON		= 10;
 
-const float DRIVE_MOTOR_STEP = 0.1;
+const float DRIVE_MOTOR_STEP = 0.05;
 
 class Team316Robot : public IterativeRobot
 {
