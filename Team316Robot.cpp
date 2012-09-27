@@ -654,7 +654,6 @@ void driveMotorsControl()
 	// get current joystick positions
 	drive_x = driverStick->GetX();
 	drive_y = driverStick->GetY();
-	//float y2 = driverStick->GetAxis(Joystick::kDefaultZAxis);
 	drive_rot = driverStick->GetAxis(Joystick::kTwistAxis); // x axis of 2nd analog stick
 	
 	// apply deadband and ramping function
@@ -679,9 +678,9 @@ float db_ramp(const float target, const float value)
 	if (fabs(target) < JOYSTICK_DEADBAND)
 		output = 0;
 	else if (target > value)
-		output = target + DRIVE_MOTOR_STEP;
+		output = value + DRIVE_MOTOR_STEP;
 	else if (target < value)
-		return target - DRIVE_MOTOR_STEP;
+		return value - DRIVE_MOTOR_STEP;
 	return output;
 }
 
