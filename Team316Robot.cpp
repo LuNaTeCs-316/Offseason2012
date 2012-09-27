@@ -85,6 +85,8 @@ const int 	MEDIUM_SLOW_BALL_SHOOTER_BUTTON	= 8;
 const int 	MEDIUM_FAST_BALL_SHOOTER_BUTTON	= 9;
 const int 	FASTEST_BALL_SHOOTER_BUTTON		= 10;
 
+const float DRIVE_MOTOR_STEP = 0.1;
+
 class Team316Robot : public IterativeRobot
 {
 /***************************************************************************************
@@ -144,8 +146,12 @@ int targetY;
 // Joystick positions for driving robot wheels
 float drive_x;
 float drive_y;
-float drive_y2;
 float drive_rot;
+
+// Drive motor outputs
+float x_out;
+float y_out;
+float rot_out;
 
 // Shooter values
 float turretVal; 	
@@ -161,7 +167,7 @@ public:
  * 
  * The only constructor; allocates memory for the dynamic member variables.
  ****************************************************************************************/ 
-Team316Robot(void) : autoStep(1)
+Team316Robot(void) : autoStep(1), x_out(0), y_out(0), rot_out(0)
 {
 	ds = DriverStation::GetInstance();
 	
@@ -644,33 +650,40 @@ void RAISE_SAM_JACK()
  ****************************************************************************************/ 
 void driveMotorsControl()
 {
+	
 	// get current joystick positions
 	drive_x = driverStick->GetX();
 	drive_y = driverStick->GetY();
 	//float y2 = driverStick->GetAxis(Joystick::kDefaultZAxis);
-	drive_rot = driverStick->GetAxis(Joystick::kTwistAxis); // y axis of 2nd analog stick
-	//float y_final;
+	drive_rot = driverStick->GetAxis(Joystick::kTwistAxis); // x axis of 2nd analog stick
 	
-	// if stick positions are inside of deadband then make them zero
-	if (fabs(drive_x) < JOYSTICK_DEADBAND)
-		drive_x = 0;
-	if (fabs(drive_y) < JOYSTICK_DEADBAND)
-		drive_y = 0;
-	if (fabs(drive_rot) < JOYSTICK_DEADBAND)
-		drive_rot = 0;
-	
-	// Send data to SmartDashboard
-	// SmartDashboard::GetInstance()->PutFloat(drive_y);
-	
-/*	if (y1 >= 0)
-		drive_y = y1 > y2 ? y1 : y2;
-	else if (drive_y < 0)
-		drive_y = y1 < y2 ? y1 : y2;
-	*/
+	// apply deadband and ramping function
+	x_out = db_ramp(drive_x, x_out);
+	y_out = db_ramp(drive_x, y_out);
+	rot_out = db_ramp(drive_x, rot_out);
+
 	// position drive motors according to joystick positions
-	driveMotors->MecanumDrive_Cartesian(drive_x, drive_y, drive_rot);
+	driveMotors->MecanumDrive_Cartesian(x_out, y_out, rot_out);
+
 } // end of driveMotorsControl
 
+/***************************************************************************************
+ * db_ramp 
+ * 
+ * this function provides a deadband and ramping of the joystick inputs 
+ ****************************************************************************************/
+
+float db_ramp(const float target, const float value)
+{
+	float output = target;
+	if (fabs(target) < JOYSTICK_DEADBAND)
+		output = 0;
+	else if (target > value)
+		output = target + DRIVE_MOTOR_STEP;
+	else if (target < value)
+		return target - DRIVE_MOTOR_STEP;
+	return output;
+}
 
 void driveMotorsControl(int x, int y, int rot)
 {
