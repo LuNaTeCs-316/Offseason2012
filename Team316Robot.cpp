@@ -85,7 +85,7 @@ const int 	MEDIUM_SLOW_BALL_SHOOTER_BUTTON	= 8;
 const int 	MEDIUM_FAST_BALL_SHOOTER_BUTTON	= 9;
 const int 	FASTEST_BALL_SHOOTER_BUTTON		= 10;
 
-const float DRIVE_MOTOR_STEP = 0.05;
+const float DRIVE_MOTOR_STEP = 0.1;
 
 class Team316Robot : public IterativeRobot
 {
@@ -650,7 +650,6 @@ void RAISE_SAM_JACK()
  ****************************************************************************************/ 
 void driveMotorsControl()
 {
-	
 	// get current joystick positions
 	drive_x = driverStick->GetX();
 	drive_y = driverStick->GetY();
@@ -661,9 +660,11 @@ void driveMotorsControl()
 	y_out = db_ramp(drive_x, y_out);
 	rot_out = db_ramp(drive_x, rot_out);
 
+	printf("x_out: %f, y_out: %f, rot_out: %f\n", drive_x, drive_y, drive_rot);
+	
 	// position drive motors according to joystick positions
 	driveMotors->MecanumDrive_Cartesian(x_out, y_out, rot_out);
-
+	
 } // end of driveMotorsControl
 
 /***************************************************************************************
