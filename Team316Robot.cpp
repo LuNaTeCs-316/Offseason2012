@@ -364,8 +364,9 @@ void AutonomousPeriodic()
 				}
 			}
 			if (autoStep == 6) DO_NOTHING_FOR_500MSECONDS();
-			if (autoStep == 7) SHOOT_BALL(); 				// takes 500ms
-			if (autoStep == 8) PRESET_FOR_TELEOP();
+			if (autoStep == 7) DO_NOTHING_FOR_500MSECONDS();
+			if (autoStep == 8) SHOOT_BALL(); 				// takes 500ms
+			if (autoStep == 9) PRESET_FOR_TELEOP();
 			break;
 		case 2:
 			if (autoStep == 0) autoStep = 1;				
@@ -400,6 +401,31 @@ void AutonomousPeriodic()
 			if (autoStep == 7) PRESET_FOR_TELEOP();
 			break;
 		*/
+		case 3:
+			if (autoStep == 0) autoStep = 1;
+			if (autoStep == 1)
+			{
+				if ((GetClock() - startTime) > ds->GetAnalogIn(2))
+				{
+					autoStep++;
+					startTime = GetClock();
+				}
+			}
+			if (autoStep == 2)
+			{
+				ballPickup->Set(Relay::kForward);
+				if ((GetClock() - startTime) > 2.0)
+				{
+					ballPickup->Set(Relay::kOff);
+					autoStep++;
+					startTime = GetClock();
+				}	
+			}
+			if (autoStep == 3) RAISE_SAM_JACK(); 			
+			if (autoStep == 4) DRIVE_TO_BRIDGE_W_DEAD_RECKONING();			
+			if (autoStep == 5) LOWER_SAM_JACK(); 				
+			if (autoStep == 6) PRESET_FOR_TELEOP();
+			break;
 		case 4:	// Autonomous Mode Four
 			if (autoStep == 0) autoStep = 1;				
 			if (autoStep == 1) RAISE_SAM_JACK(); 			
@@ -461,7 +487,7 @@ void INITIAL_SETUP()
 	armBall();
 	
 	// Check if we're ready to advance to the next step
-	if ((GetClock() - startTime) > 2.0)
+	if ((GetClock() - startTime) > 3.0)
 	{
 		++autoStep;
 		startTime = GetClock();
@@ -509,7 +535,7 @@ void SHOOT_BALL()
 	shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
 	shootBall();
 	// Check if we're ready to advance to the next step
-	if ((GetClock() - startTime) > 0.5)
+	if ((GetClock() - startTime) > 2.0)
 	{
 		++autoStep;
 		startTime = GetClock();
@@ -527,9 +553,9 @@ void LOAD_NEXT_BALL()
 	shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
 	reloadBall();
 	
-	// exit after 1 second regardless if ball loaded?
+	// exit after 2 seconds regardless if ball loaded?
 	// Check if we're ready to advance to the next step
-	if ((GetClock() - startTime) > 1.0)
+	if ((GetClock() - startTime) > 2.0)
 	{
 		++autoStep;
 		startTime = GetClock();
@@ -788,7 +814,8 @@ void ballLoadingControl()
 	
 	
 	// control of upper piston
-	if ( operatorStick->GetRawButton(RAISE_FIRING_PISTON_BUTTON) )
+	if ( (operatorStick->GetRawButton(RAISE_LOADING_PISTON_BUTTON) || ballLoad->Get())
+			&& operatorStick->GetRawButton(RAISE_FIRING_PISTON_BUTTON) )
 	{
 		// raise the firing piston
 		
