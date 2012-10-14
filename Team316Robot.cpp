@@ -133,6 +133,7 @@ int autoMode;		// which autonomous mode are we running?
 int autoStep;		// which step in autonomous mode are we in?
 double startTime;	// used to record the starting time in autonomous
 bool autoTimedOut;	// did autonomous mode timeout
+double autoSpeed;	// speed of the shooter in Autonomous Mode
 
 // Camera data
 int maxWidth;
@@ -334,6 +335,7 @@ void AutonomousInit()
 	autoMode = (int) ds->GetAnalogIn(1);	// automode is predetermined by the analog sliders on the dashboard
 	autoStep = 1; 							// start at step 1 not step 0
 	startTime = GetClock();					// record the time we start so we can use this number for time based steps
+	autoSpeed = (ds->GetAnalogIn(3) * -1) - 5;
 } // end of AutonomousInit
 
 
@@ -483,7 +485,7 @@ void PRESET_FOR_TELEOP()
 void INITIAL_SETUP()
 {
 	// Power motor and setup pistons
-	shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
+	shooterMotor->Set(autoSpeed);
 	armBall();
 	
 	// Check if we're ready to advance to the next step
@@ -499,7 +501,7 @@ void INITIAL_SETUP()
 void INITIAL_SETUP(int time)
 {
 	// Power motor and setup pistons
-	shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
+	shooterMotor->Set(autoSpeed);
 	armBall();
 	// Check if we're ready to advance to the next step
 	if ((GetClock() - startTime) > time)
@@ -514,7 +516,7 @@ void INITIAL_SETUP(int time)
 void INITIAL_SETUP(float time)
 {
 // Power motor and setup pistons
-	shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
+	shooterMotor->Set(autoSpeed);
 	armBall();
 	// Check if we're ready to advance to the next step
 	if ((GetClock() - startTime) > time)
@@ -532,7 +534,7 @@ void INITIAL_SETUP(float time)
  ****************************************************************************************/ 
 void SHOOT_BALL()
 {
-	shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
+	shooterMotor->Set(autoSpeed);
 	shootBall();
 	// Check if we're ready to advance to the next step
 	if ((GetClock() - startTime) > 2.0)
@@ -550,7 +552,7 @@ void SHOOT_BALL()
  ****************************************************************************************/ 
 void LOAD_NEXT_BALL()
 {	
-	shooterMotor->Set(DEFAULT_SHOOTER_SPEED);
+	shooterMotor->Set(autoSpeed);
 	reloadBall();
 	
 	// exit after 2 seconds regardless if ball loaded?
@@ -670,20 +672,32 @@ void RAISE_SAM_JACK()
  ****************************************************************************************/ 
 void driveMotorsControl()
 {
-	// get current joystick positions
-	drive_x = driverStick->GetX();
-	drive_y = driverStick->GetY();
-	//float y2 = driverStick->GetAxis(Joystick::kDefaultZAxis);
-	drive_rot = driverStick->GetAxis(Joystick::kTwistAxis); // y axis of 2nd analog stick
-	//float y_final;
+	// Software brake
+	if (driverStick->GetRawButton(4))
+	{
+		printf("Braking...\n");
+		static float brakeVal = 0.125;
+		drive_x = drive_rot = 0;
+		brakeVal *= -1;
+		drive_y = brakeVal;
+	}
 	
-	// if stick positions are inside of deadband then make them zero
-	if (fabs(drive_x) < JOYSTICK_DEADBAND)
-		drive_x = 0;
-	if (fabs(drive_y) < JOYSTICK_DEADBAND)
-		drive_y = 0;
-	if (fabs(drive_rot) < JOYSTICK_DEADBAND)
-		drive_rot = 0;
+	else
+	{
+		// get current joystick positions
+		drive_x = driverStick->GetX();
+		drive_y = driverStick->GetY();
+		//float y2 = driverStick->GetAxis(Joystick::kDefaultZAxis);
+		drive_rot = driverStick->GetAxis(Joystick::kTwistAxis); // y axis of 2nd analog stick
+		//float y_final;
+		
+		// if stick positions are inside of deadband then make them zero
+		if (fabs(drive_x) < JOYSTICK_DEADBAND)
+			drive_x = 0;
+		if (fabs(drive_y) < JOYSTICK_DEADBAND)
+			drive_y = 0;
+		if (fabs(drive_rot) < JOYSTICK_DEADBAND)
+			drive_rot = 0;
 	
 	// Send data to SmartDashboard
 	// SmartDashboard::GetInstance()->PutFloat(drive_y);
@@ -693,6 +707,9 @@ void driveMotorsControl()
 	else if (drive_y < 0)
 		drive_y = y1 < y2 ? y1 : y2;
 	*/
+		
+	}
+	
 	// position drive motors according to joystick positions
 	driveMotors->MecanumDrive_Cartesian(drive_x, drive_y, drive_rot);
 } // end of driveMotorsControl
